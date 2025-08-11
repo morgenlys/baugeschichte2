@@ -1,0 +1,1080 @@
+[
+  {
+    "id": "dom-von-pisa",
+    "name": "Dom von Pisa",
+    "architect": "Buscheto; Rainaldo",
+    "era": "Romanik/Gotik",
+    "image": "./assets/images/dom-von-pisa.jpg"
+  },
+  {
+    "id": "dom-zu-siena",
+    "name": "Dom zu Siena",
+    "architect": "(diverse, u.a. Giovanni di Agostino; Giovanni Pisano)",
+    "era": "Renaissance (Protorenaissance)",
+    "image": "./assets/images/dom-zu-siena.jpg"
+  },
+  {
+    "id": "kathedrale-santa-maria-del-fiore",
+    "name": "Kathedrale Santa Maria del Fiore",
+    "architect": "Arnolfo di Cambio; Filippo Brunelleschi",
+    "era": "Renaissance (Protorenaissance)",
+    "image": "./assets/images/kathedrale-santa-maria-del-fiore.jpg"
+  },
+  {
+    "id": "ospedale-degli-innocenti",
+    "name": "Ospedale degli Innocenti",
+    "architect": "Filippo Brunelleschi",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/ospedale-degli-innocenti.jpg"
+  },
+  {
+    "id": "klosteranlage-san-lorenzo",
+    "name": "Klosteranlage San Lorenzo – Alte Sakristei (Sagrestia Vecchia)",
+    "architect": "Filippo Brunelleschi",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/klosteranlage-san-lorenzo.jpg"
+  },
+  {
+    "id": "pazzi-kapelle",
+    "name": "Pazzi-Kapelle (Santa Croce)",
+    "architect": "Filippo Brunelleschi",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/pazzi-kapelle.jpg"
+  },
+  {
+    "id": "tempio-malatestiano",
+    "name": "Tempio Malatestiano",
+    "architect": "Leon Battista Alberti",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/tempio-malatestiano.jpg"
+  },
+  {
+    "id": "santa-maria-novella-fassade",
+    "name": "Santa Maria Novella – Fassade",
+    "architect": "Leon Battista Alberti",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/santa-maria-novella-fassade.jpg"
+  },
+  {
+    "id": "sant-andrea-mantua",
+    "name": "Sant’Andrea, Mantua",
+    "architect": "Leon Battista Alberti",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/sant-andrea-mantua.jpg"
+  },
+  {
+    "id": "palazzo-medici-riccardi",
+    "name": "Palazzo Medici-Riccardi",
+    "architect": "Michelozzo",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/palazzo-medici-riccardi.jpg"
+  },
+  {
+    "id": "palazzo-rucellai",
+    "name": "Palazzo Rucellai",
+    "architect": "Leon Battista Alberti",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/palazzo-rucellai.jpg"
+  },
+  {
+    "id": "palazzo-strozzi",
+    "name": "Palazzo Strozzi",
+    "architect": "Benedetto da Maiano; Giuliano da Sangallo",
+    "era": "Renaissance (Frührenaissance)",
+    "image": "./assets/images/palazzo-strozzi.jpg"
+  },
+  {
+    "id": "palazzo-della-cancelleria",
+    "name": "Palazzo della Cancelleria",
+    "architect": "Baccio Pontelli; Donato Bramante",
+    "era": "Renaissance (Hochrenaissance)",
+    "image": "./assets/images/palazzo-della-cancelleria.jpg"
+  },
+  {
+    "id": "palazzo-farnese",
+    "name": "Palazzo Farnese",
+    "architect": "Antonio da Sangallo d. J.; Michelangelo Buonarroti",
+    "era": "Renaissance (Hochrenaissance)",
+    "image": "./assets/images/palazzo-farnese.jpg"
+  },
+  {
+    "id": "villa-medici-in-poggio-a-caiano-bei-florenz",
+    "name": "Villa Medici in Poggio a Caiano (bei Florenz)",
+    "architect": "Giuliano da Sangallo",
+    "era": "Renaissance (Hochrenaissance)",
+    "image": "./assets/images/villa-medici-in-poggio-a-caiano-bei-florenz.jpg"
+  },
+  {
+    "id": "tempietto-san-pietro-in-montorio",
+    "name": "Tempietto San Pietro in Montorio",
+    "architect": "Donato Bramante",
+    "era": "Renaissance (Hochrenaissance)",
+    "image": "./assets/images/tempietto-san-pietro-in-montorio.jpg"
+  },
+  {
+    "id": "neubau-dom-st-peter",
+    "name": "Neubau St. Peter (Rom)",
+    "architect": "Donato Bramante; Michelangelo; Carlo Maderno; Gian Lorenzo Bernini",
+    "era": "Renaissance / Barock",
+    "image": "./assets/images/neubau-dom-st-peter.jpg"
+  },
+  {
+    "id": "neue-sakristei-sagrestia-nuova",
+    "name": "San Lorenzo – Neue Sakristei (Sagrestia Nuova)",
+    "architect": "Michelangelo Buonarroti",
+    "era": "Renaissance (Hochrenaissance)",
+    "image": "./assets/images/neue-sakristei-sagrestia-nuova.jpg"
+  },
+  {
+    "id": "biblioteca-laurenziana",
+    "name": "Biblioteca Laurenziana",
+    "architect": "Michelangelo Buonarroti",
+    "era": "Renaissance (Hochrenaissance)",
+    "image": "./assets/images/biblioteca-laurenziana.jpg"
+  },
+  {
+    "id": "porta-pia",
+    "name": "Porta Pia (Rom)",
+    "architect": "Michelangelo Buonarroti",
+    "era": "Renaissance (Hochrenaissance)",
+    "image": "./assets/images/porta-pia.jpg"
+  },
+  {
+    "id": "palazzo-del-te",
+    "name": "Palazzo del Tè",
+    "architect": "Giulio Romano",
+    "era": "Manierismus",
+    "image": "./assets/images/palazzo-del-te.jpg"
+  },
+  {
+    "id": "palazzo-ducale",
+    "name": "Palazzo Ducale (Mantua)",
+    "architect": "(diverse; u.a. Giulio Romano, Luca Fancelli)",
+    "era": "Manierismus",
+    "image": "./assets/images/palazzo-ducale.jpg"
+  },
+  {
+    "id": "wohnhaus-des-giulio-romano",
+    "name": "Wohnhaus des Giulio Romano",
+    "architect": "Giulio Romano",
+    "era": "Manierismus",
+    "image": "./assets/images/wohnhaus-des-giulio-romano.jpg"
+  },
+  {
+    "id": "palazzo-pitti",
+    "name": "Palazzo Pitti (Erweiterungen)",
+    "architect": "Bartolomeo Ammanati",
+    "era": "Manierismus",
+    "image": "./assets/images/palazzo-pitti.jpg"
+  },
+  {
+    "id": "villa-giulia",
+    "name": "Villa Giulia (Rom)",
+    "architect": "Giacomo Barozzi da Vignola",
+    "era": "Manierismus",
+    "image": "./assets/images/villa-giulia.jpg"
+  },
+  {
+    "id": "palazzo-farnese-caprarola",
+    "name": "Palazzo Farnese (Caprarola)",
+    "architect": "Giacomo Barozzi da Vignola",
+    "era": "Manierismus",
+    "image": "./assets/images/palazzo-farnese-caprarola.jpg"
+  },
+  {
+    "id": "il-gesu",
+    "name": "Il Gesù (Rom)",
+    "architect": "Giacomo Barozzi da Vignola; Giacomo della Porta",
+    "era": "Manierismus / Frühbarock",
+    "image": "./assets/images/il-gesu.jpg"
+  },
+  {
+    "id": "basilika-vicenca",
+    "name": "Basilika (Vicenza)",
+    "architect": "Andrea Palladio",
+    "era": "Manierismus / Frühbarock",
+    "image": "./assets/images/basilika-vicenca.jpg"
+  },
+  {
+    "id": "palazzo-chiericati",
+    "name": "Palazzo Chiericati",
+    "architect": "Andrea Palladio",
+    "era": "Manierismus / Frühbarock",
+    "image": "./assets/images/palazzo-chiericati.jpg"
+  },
+  {
+    "id": "palazzo-valmarana",
+    "name": "Palazzo Valmarana",
+    "architect": "Andrea Palladio",
+    "era": "Manierismus / Frühbarock",
+    "image": "./assets/images/palazzo-valmarana.jpg"
+  },
+  {
+    "id": "villa-rotonda",
+    "name": "Villa Rotonda",
+    "architect": "Andrea Palladio",
+    "era": "Manierismus / Frühbarock",
+    "image": "./assets/images/villa-rotonda.jpg"
+  },
+  {
+    "id": "teatro-olimpico",
+    "name": "Teatro Olimpico",
+    "architect": "Andrea Palladio; Vincenzo Scamozzi",
+    "era": "Manierismus / Frühbarock",
+    "image": "./assets/images/teatro-olimpico.jpg"
+  },
+  {
+    "id": "il-redentore",
+    "name": "Il Redentore (Venedig)",
+    "architect": "Andrea Palladio",
+    "era": "Manierismus / Frühbarock",
+    "image": "./assets/images/il-redentore.jpg"
+  },
+  {
+    "id": "ch-teau-blois",
+    "name": "Château Blois",
+    "architect": "diverse; u.a. Domenico da Cortona; François Mansart",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/ch-teau-blois.jpg"
+  },
+  {
+    "id": "ch-teau-chambord",
+    "name": "Château Chambord",
+    "architect": "Domenico da Cortona (zugeschr.); Einfluss Leonardo da Vinci",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/ch-teau-chambord.jpg"
+  },
+  {
+    "id": "louvre-paris",
+    "name": "Louvre (Paris – Lescot-Flügel)",
+    "architect": "Pierre Lescot",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/louvre-paris.jpg"
+  },
+  {
+    "id": "ch-teau-anet",
+    "name": "Château Anet (mit Kapelle)",
+    "architect": "Philibert de l’Orme",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/ch-teau-anet.jpg"
+  },
+  {
+    "id": "alhambra-granada-nasridenpalast-und-palast-karls-v",
+    "name": "Alhambra – Palast Karls V.",
+    "architect": "Pedro Machuca",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/alhambra-granada-nasridenpalast-und-palast-karls-v.jpg"
+  },
+  {
+    "id": "kathedrale-von-granada",
+    "name": "Kathedrale von Granada",
+    "architect": "Diego de Siloé",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/kathedrale-von-granada.jpg"
+  },
+  {
+    "id": "fugger-kapelle-bei-st-anna",
+    "name": "Fugger-Kapelle (St. Anna, Augsburg)",
+    "architect": "Hans Hieber; Burkhard Engelberg",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/fugger-kapelle-bei-st-anna.jpg"
+  },
+  {
+    "id": "heidelberger-schloss",
+    "name": "Heidelberger Schloss – Ottheinrichsbau",
+    "architect": "Heinrich Schickhardt; (zugeschr. / Hofbaumeisterkreis)",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/heidelberger-schloss.jpg"
+  },
+  {
+    "id": "jesuitenkirche-st-michael-muenchen",
+    "name": "Jesuitenkirche St. Michael (München)",
+    "architect": "Friedrich Sustris; Wendel Dietrich",
+    "era": "Renaissance in Europa",
+    "image": "./assets/images/jesuitenkirche-st-michael-muenchen.jpg"
+  },
+  {
+    "id": "ulu-camii",
+    "name": "Ulu Camii (Bursa)",
+    "architect": "(unbekannt/umstritten)",
+    "era": "Osmanische Architektur",
+    "image": "./assets/images/ulu-camii.jpg"
+  },
+  {
+    "id": "fatih-camii",
+    "name": "Fatih Camii (Istanbul)",
+    "architect": "Atik Sinan",
+    "era": "Osmanische Architektur",
+    "image": "./assets/images/fatih-camii.jpg"
+  },
+  {
+    "id": "beyazid-camii-istanbul",
+    "name": "Beyazid Camii (Istanbul)",
+    "architect": "Yakub Şah bin Sultan Şah",
+    "era": "Osmanische Architektur",
+    "image": "./assets/images/beyazid-camii-istanbul.jpg"
+  },
+  {
+    "id": "sueleimaniye-camii-istanbul",
+    "name": "Süleymaniye Camii (Istanbul)",
+    "architect": "Mimar Sinan",
+    "era": "Osmanische Architektur",
+    "image": "./assets/images/sueleimaniye-camii-istanbul.jpg"
+  },
+  {
+    "id": "selimiye-camii-edirne",
+    "name": "Selimiye Camii (Edirne)",
+    "architect": "Mimar Sinan",
+    "era": "Osmanische Architektur",
+    "image": "./assets/images/selimiye-camii-edirne.jpg"
+  },
+  {
+    "id": "st-peter-und-petersplatz",
+    "name": "St. Peter (Fassade) und Petersplatz",
+    "architect": "Carlo Maderno; Gian Lorenzo Bernini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/st-peter-und-petersplatz.jpg"
+  },
+  {
+    "id": "piazza-del-popolo-zwillingskirchen",
+    "name": "Piazza del Popolo – Zwillingskirchen",
+    "architect": "Carlo Rainaldi; Carlo Fontana; Gian Lorenzo Bernini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/piazza-del-popolo-zwillingskirchen.jpg"
+  },
+  {
+    "id": "santa-susanna",
+    "name": "Santa Susanna (Rom)",
+    "architect": "Carlo Maderno",
+    "era": "Römischer Barock",
+    "image": "./assets/images/santa-susanna.jpg"
+  },
+  {
+    "id": "santi-luca-e-martina",
+    "name": "Santi Luca e Martina (Rom)",
+    "architect": "Pietro da Cortona",
+    "era": "Römischer Barock",
+    "image": "./assets/images/santi-luca-e-martina.jpg"
+  },
+  {
+    "id": "sant-ivo-della-sapienza",
+    "name": "Sant’ Ivo della Sapienza",
+    "architect": "Francesco Borromini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/sant-ivo-della-sapienza.jpg"
+  },
+  {
+    "id": "san-giovanni-in-laterano-fassade",
+    "name": "San Giovanni in Laterano – Fassade",
+    "architect": "Francesco Borromini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/san-giovanni-in-laterano-fassade.jpg"
+  },
+  {
+    "id": "piazza-navona-und-sant-agnese",
+    "name": "Piazza Navona – Palazzo Pamphili & Sant’ Agnese",
+    "architect": "Francesco Borromini (Sant’ Agnese); Bernini (Vierströmebrunnen)",
+    "era": "Römischer Barock",
+    "image": "./assets/images/piazza-navona-und-sant-agnese.jpg"
+  },
+  {
+    "id": "san-carlo-alle-quattro-fontane",
+    "name": "San Carlo alle Quattro Fontane",
+    "architect": "Francesco Borromini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/san-carlo-alle-quattro-fontane.jpg"
+  },
+  {
+    "id": "scala-regia",
+    "name": "Scala Regia (Vatikan)",
+    "architect": "Gian Lorenzo Bernini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/scala-regia.jpg"
+  },
+  {
+    "id": "santa-maria-della-pace",
+    "name": "Santa Maria della Pace (Rom)",
+    "architect": "Pietro da Cortona",
+    "era": "Römischer Barock",
+    "image": "./assets/images/santa-maria-della-pace.jpg"
+  },
+  {
+    "id": "sant-andrea-al-quirinale",
+    "name": "Sant’ Andrea al Quirinale",
+    "architect": "Gian Lorenzo Bernini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/sant-andrea-al-quirinale.jpg"
+  },
+  {
+    "id": "santa-maria-in-campitelli",
+    "name": "Santa Maria in Campitelli",
+    "architect": "Carlo Rainaldi",
+    "era": "Römischer Barock",
+    "image": "./assets/images/santa-maria-in-campitelli.jpg"
+  },
+  {
+    "id": "santa-maria-maggiore-fassade",
+    "name": "Santa Maria Maggiore – Fassade (18. Jh.)",
+    "architect": "Ferdinando Fuga",
+    "era": "Römischer Barock / Spätbarock",
+    "image": "./assets/images/santa-maria-maggiore-fassade.jpg"
+  },
+  {
+    "id": "spanische-treppe",
+    "name": "Spanische Treppe",
+    "architect": "Francesco de Sanctis; Alessandro Specchi",
+    "era": "Römischer Barock",
+    "image": "./assets/images/spanische-treppe.jpg"
+  },
+  {
+    "id": "engelsbruecke-skulpturen",
+    "name": "Engelsbrücke – Skulpturen",
+    "architect": "Gian Lorenzo Bernini",
+    "era": "Römischer Barock",
+    "image": "./assets/images/engelsbruecke-skulpturen.jpg"
+  },
+  {
+    "id": "san-lorenzo-turin",
+    "name": "San Lorenzo (Turin)",
+    "architect": "Guarino Guarini",
+    "era": "Barock in Europa",
+    "image": "./assets/images/san-lorenzo-turin.jpg"
+  },
+  {
+    "id": "palais-du-luxembourg",
+    "name": "Palais du Luxembourg (Paris)",
+    "architect": "Salomon de Brosse",
+    "era": "Barock in Europa",
+    "image": "./assets/images/palais-du-luxembourg.jpg"
+  },
+  {
+    "id": "ch-teau-vaux-le-vicomte",
+    "name": "Château Vaux-le-Vicomte",
+    "architect": "Louis Le Vau",
+    "era": "Barock in Europa",
+    "image": "./assets/images/ch-teau-vaux-le-vicomte.jpg"
+  },
+  {
+    "id": "h-tel-lambert",
+    "name": "Hôtel Lambert (Paris)",
+    "architect": "Louis Le Vau",
+    "era": "Barock in Europa",
+    "image": "./assets/images/h-tel-lambert.jpg"
+  },
+  {
+    "id": "ch-teau-louvre",
+    "name": "Louvre Ostfassade",
+    "architect": "Claude Perrault",
+    "era": "Barock in Europa",
+    "image": "./assets/images/ch-teau-louvre.jpg"
+  },
+  {
+    "id": "val-de-grace",
+    "name": "Val-de-Grâce (Paris)",
+    "architect": "François Mansart; Jacques Lemercier",
+    "era": "Barock in Europa",
+    "image": "./assets/images/val-de-grace.jpg"
+  },
+  {
+    "id": "observatorium-paris",
+    "name": "Observatorium (Paris)",
+    "architect": "Claude Perrault",
+    "era": "Barock in Europa",
+    "image": "./assets/images/observatorium-paris.jpg"
+  },
+  {
+    "id": "porte-saint-denis",
+    "name": "Porte Saint-Denis (Paris)",
+    "architect": "François Blondel",
+    "era": "Barock in Europa",
+    "image": "./assets/images/porte-saint-denis.jpg"
+  },
+  {
+    "id": "invalidendom",
+    "name": "Invalidendom (Paris)",
+    "architect": "Liberal Bruant; Jules Hardouin-Mansart",
+    "era": "Barock in Europa",
+    "image": "./assets/images/invalidendom.jpg"
+  },
+  {
+    "id": "ch-teau-versailles",
+    "name": "Schloss Versailles",
+    "architect": "Louis Le Vau; Jules Hardouin-Mansart; André Le Nôtre (Garten)",
+    "era": "Barock in Europa",
+    "image": "./assets/images/ch-teau-versailles.jpg"
+  },
+  {
+    "id": "schloss-schoenbrunn",
+    "name": "Schloss Schönbrunn (Wien)",
+    "architect": "Johann Bernhard Fischer von Erlach",
+    "era": "Barock in Europa",
+    "image": "./assets/images/schloss-schoenbrunn.jpg"
+  },
+  {
+    "id": "berliner-stadtschloss",
+    "name": "Berliner Stadtschloss",
+    "architect": "Andreas Schlüter",
+    "era": "Barock in Europa",
+    "image": "./assets/images/berliner-stadtschloss.jpg"
+  },
+  {
+    "id": "schloss-charlottenburg",
+    "name": "Schloss Charlottenburg",
+    "architect": "Johann Arnold Nering; Eosander von Göthe; G. W. von Knobelsdorff",
+    "era": "Barock in Europa",
+    "image": "./assets/images/schloss-charlottenburg.jpg"
+  },
+  {
+    "id": "unteres-und-oberes-belvedere",
+    "name": "Unteres & Oberes Belvedere (Wien)",
+    "architect": "Johann Lukas von Hildebrandt",
+    "era": "Barock in Europa",
+    "image": "./assets/images/unteres-und-oberes-belvedere.jpg"
+  },
+  {
+    "id": "zwinger-dresden",
+    "name": "Zwinger (Dresden)",
+    "architect": "Matthäus Daniel Pöppelmann",
+    "era": "Barock in Europa",
+    "image": "./assets/images/zwinger-dresden.jpg"
+  },
+  {
+    "id": "schloss-weissenstei-n",
+    "name": "Schloss Weißenstein (Pommersfelden)",
+    "architect": "Johann Dientzenhofer; Johann Lukas von Hildebrandt",
+    "era": "Barock in Europa",
+    "image": "./assets/images/schloss-weissenstei-n.jpg"
+  },
+  {
+    "id": "schloss-augustusburg-bruehl",
+    "name": "Schloss Augustusburg (Brühl) – Treppenhaus",
+    "architect": "François de Cuvilliés d. Ä.; Balthasar Neumann (Treppenhaus)",
+    "era": "Barock in Europa",
+    "image": "./assets/images/schloss-augustusburg-bruehl.jpg"
+  },
+  {
+    "id": "neues-palais",
+    "name": "Neues Palais (Potsdam)",
+    "architect": "(diverse; unter Friedrich II., u.a. Johann Gottfried Büring, Carl von Gontard)",
+    "era": "Barock in Europa",
+    "image": "./assets/images/neues-palais.jpg"
+  },
+  {
+    "id": "schloss-und-park-san-ssouci",
+    "name": "Schloss und Park Sanssouci (Potsdam)",
+    "architect": "Georg Wenzeslaus von Knobelsdorff; Peter Joseph Lenné (Garten)",
+    "era": "Barock in Europa",
+    "image": "./assets/images/schloss-und-park-san-ssouci.jpg"
+  },
+  {
+    "id": "asamkirche-st-johann-nepomuk-muenchen",
+    "name": "Asamkirche St. Johann Nepomuk (München)",
+    "architect": "Egid Quirin Asam; Cosmas Damian Asam",
+    "era": "Barock in Europa",
+    "image": "./assets/images/asamkirche-st-johann-nepomuk-muenchen.jpg"
+  },
+  {
+    "id": "dorfkirche-steinhausen",
+    "name": "Dorfkirche Steinhausen",
+    "architect": "Dominikus Zimmermann",
+    "era": "Barock in Europa",
+    "image": "./assets/images/dorfkirche-steinhausen.jpg"
+  },
+  {
+    "id": "klosterkirche-zwiefalten",
+    "name": "Klosterkirche Zwiefalten",
+    "architect": "Johann Michael Fischer",
+    "era": "Barock in Europa",
+    "image": "./assets/images/klosterkirche-zwiefalten.jpg"
+  },
+  {
+    "id": "the-queen-s-house-greenwich",
+    "name": "The Queen’s House (Greenwich)",
+    "architect": "Inigo Jones",
+    "era": "Klassizismus / Palladianismus",
+    "image": "./assets/images/the-queen-s-house-greenwich.jpg"
+  },
+  {
+    "id": "university-of-virginia",
+    "name": "University of Virginia",
+    "architect": "Thomas Jefferson",
+    "era": "Klassizismus / Palladianismus",
+    "image": "./assets/images/university-of-virginia.jpg"
+  },
+  {
+    "id": "arc-et-senans-salinenstadt",
+    "name": "Salinenstadt Arc-et-Senans",
+    "architect": "Claude-Nicolas Ledoux",
+    "era": "Klassizismus",
+    "image": "./assets/images/arc-et-senans-salinenstadt.jpg"
+  },
+  {
+    "id": "barrieres-de-paris",
+    "name": "Barrières de Paris",
+    "architect": "Claude-Nicolas Ledoux",
+    "era": "Klassizismus",
+    "image": "./assets/images/barrieres-de-paris.jpg"
+  },
+  {
+    "id": "kenotaph-fuer-isaac-newton",
+    "name": "Kenotaph für Isaac Newton",
+    "architect": "Étienne-Louis Boullée",
+    "era": "Klassizismus / Revolutionsarchitektur",
+    "image": "./assets/images/kenotaph-fuer-isaac-newton.jpg"
+  },
+  {
+    "id": "maison-d-education",
+    "name": "Maison d’Education",
+    "architect": "Claude-Nicolas Ledoux",
+    "era": "Klassizismus",
+    "image": "./assets/images/maison-d-education.jpg"
+  },
+  {
+    "id": "denkmal-friedrich-des-grossen",
+    "name": "Denkmal Friedrich des Großen (Entwurf)",
+    "architect": "Friedrich Gilly",
+    "era": "Klassizismus",
+    "image": "./assets/images/denkmal-friedrich-des-grossen.jpg"
+  },
+  {
+    "id": "alte-nationalgalerie",
+    "name": "Alte Nationalgalerie (Berlin)",
+    "architect": "Friedrich August Stüler; Johann Heinrich Strack",
+    "era": "Klassizismus / Historismus",
+    "image": "./assets/images/alte-nationalgalerie.jpg"
+  },
+  {
+    "id": "brandenburger-tor",
+    "name": "Brandenburger Tor",
+    "architect": "Carl Gotthard Langhans",
+    "era": "Klassizismus",
+    "image": "./assets/images/brandenburger-tor.jpg"
+  },
+  {
+    "id": "neue-wache",
+    "name": "Neue Wache (Berlin)",
+    "architect": "Karl Friedrich Schinkel",
+    "era": "Klassizismus",
+    "image": "./assets/images/neue-wache.jpg"
+  },
+  {
+    "id": "altes-museum-berlin",
+    "name": "Altes Museum (Berlin)",
+    "architect": "Karl Friedrich Schinkel",
+    "era": "Klassizismus",
+    "image": "./assets/images/altes-museum-berlin.jpg"
+  },
+  {
+    "id": "friedrichwerdersche-kirche",
+    "name": "Friedrichwerdersche Kirche",
+    "architect": "Karl Friedrich Schinkel",
+    "era": "Klassizismus / Neogotik",
+    "image": "./assets/images/friedrichwerdersche-kirche.jpg"
+  },
+  {
+    "id": "schloss-glienicke",
+    "name": "Schloss Glienicke",
+    "architect": "Karl Friedrich Schinkel",
+    "era": "Klassizismus",
+    "image": "./assets/images/schloss-glienicke.jpg"
+  },
+  {
+    "id": "burg-stolzenfels",
+    "name": "Burg Stolzenfels (Umbau/Planung)",
+    "architect": "Karl Friedrich Schinkel",
+    "era": "Historismus / Neogotik",
+    "image": "./assets/images/burg-stolzenfels.jpg"
+  },
+  {
+    "id": "bauakademie-berlin",
+    "name": "Bauakademie (Berlin)",
+    "architect": "Karl Friedrich Schinkel",
+    "era": "Klassizismus",
+    "image": "./assets/images/bauakademie-berlin.jpg"
+  },
+  {
+    "id": "akademie-der-wissenschaften",
+    "name": "Akademie der Wissenschaften (Athen)",
+    "architect": "Theophil Hansen",
+    "era": "Klassizismus",
+    "image": "./assets/images/akademie-der-wissenschaften.jpg"
+  },
+  {
+    "id": "koenigsplatz-und-propylaeen",
+    "name": "Königsplatz & Propyläen (München)",
+    "architect": "Leo von Klenze",
+    "era": "Klassizismus",
+    "image": "./assets/images/koenigsplatz-und-propylaeen.jpg"
+  },
+  {
+    "id": "walhalla-donaustauf",
+    "name": "Walhalla (Donaustauf)",
+    "architect": "Leo von Klenze",
+    "era": "Klassizismus",
+    "image": "./assets/images/walhalla-donaustauf.jpg"
+  },
+  {
+    "id": "dom-von-regensburg",
+    "name": "Dom von Regensburg",
+    "architect": "Meister der Regensburger Hütte (u.a. Matthäus Roritzer)",
+    "era": "Gotik / Weiterbau 19. Jh.",
+    "image": "./assets/images/dom-von-regensburg.jpg"
+  },
+  {
+    "id": "koelner-dom",
+    "name": "Kölner Dom (Weiterbau 19. Jh.)",
+    "architect": "Gerhard von Rile; Ernst Friedrich Zwirner",
+    "era": "Gotik / Weiterbau 19. Jh.",
+    "image": "./assets/images/koelner-dom.jpg"
+  },
+  {
+    "id": "bibliotheque-sainte-genevieve",
+    "name": "Bibliothèque Sainte-Geneviève (Paris)",
+    "architect": "Henri Labrouste",
+    "era": "Historismus / Industriearchitektur",
+    "image": "./assets/images/bibliotheque-sainte-genevieve.jpg"
+  },
+  {
+    "id": "iron-bridge",
+    "name": "Iron Bridge (England)",
+    "architect": "Thomas Pritchard; Abraham Darby III",
+    "era": "Historismus / Industriearchitektur",
+    "image": "./assets/images/iron-bridge.jpg"
+  },
+  {
+    "id": "crystal-palace",
+    "name": "Crystal Palace (London)",
+    "architect": "Joseph Paxton",
+    "era": "Historismus / Industriearchitektur",
+    "image": "./assets/images/crystal-palace.jpg"
+  },
+  {
+    "id": "brooklyn-bridge",
+    "name": "Brooklyn Bridge (New York)",
+    "architect": "John A. Roebling; Washington Roebling",
+    "era": "Historismus / Ingenieurbau",
+    "image": "./assets/images/brooklyn-bridge.jpg"
+  },
+  {
+    "id": "tour-eiffel",
+    "name": "Tour Eiffel (Paris)",
+    "architect": "Gustave Eiffel",
+    "era": "Historismus / Ingenieurbau",
+    "image": "./assets/images/tour-eiffel.jpg"
+  },
+  {
+    "id": "pennsylvania-station",
+    "name": "Pennsylvania Station (New York, historisch)",
+    "architect": "McKim, Mead & White",
+    "era": "Historismus",
+    "image": "./assets/images/pennsylvania-station.jpg"
+  },
+  {
+    "id": "forth-bridge",
+    "name": "Forth Bridge (Schottland)",
+    "architect": "John Fowler; Benjamin Baker",
+    "era": "Historismus / Ingenieurbau",
+    "image": "./assets/images/forth-bridge.jpg"
+  },
+  {
+    "id": "cast-iron-building-broadway-broome",
+    "name": "Gusseisen-Gebäude Broadway/Broome St. (NYC)",
+    "architect": "Griffith Thomas (zugeschr.)",
+    "era": "Historismus / Industriearchitektur",
+    "image": "./assets/images/cast-iron-building-broadway-broome.jpg"
+  },
+  {
+    "id": "leiter-building",
+    "name": "Leiter Building (Chicago)",
+    "architect": "William LeBaron Jenney",
+    "era": "Historismus / Chicago School",
+    "image": "./assets/images/leiter-building.jpg"
+  },
+  {
+    "id": "schlesinger-mayer-department-store",
+    "name": "Schlesinger & Mayer Department Store (Chicago)",
+    "architect": "Louis H. Sullivan",
+    "era": "Historismus / Chicago School",
+    "image": "./assets/images/schlesinger-mayer-department-store.jpg"
+  },
+  {
+    "id": "flatiron-fuller-building",
+    "name": "„Flatiron“ (Fuller Building, New York)",
+    "architect": "Daniel H. Burnham",
+    "era": "Historismus / Frühe Hochhausmoderne",
+    "image": "./assets/images/flatiron-fuller-building.jpg"
+  },
+  {
+    "id": "palais-stoclet",
+    "name": "Palais Stoclet (Brüssel)",
+    "architect": "Josef Hoffmann",
+    "era": "Jugendstil / Secession",
+    "image": "./assets/images/palais-stoclet.jpg"
+  },
+  {
+    "id": "postsparkasse-wien",
+    "name": "Postsparkasse (Wien)",
+    "architect": "Otto Wagner",
+    "era": "Jugendstil / Secession",
+    "image": "./assets/images/postsparkasse-wien.jpg"
+  },
+  {
+    "id": "majolikahaus-wien",
+    "name": "Majolikahaus (Wien)",
+    "architect": "Otto Wagner",
+    "era": "Jugendstil / Secession",
+    "image": "./assets/images/majolikahaus-wien.jpg"
+  },
+  {
+    "id": "secession-wien",
+    "name": "Ausstellungsgebäude der Secession (Wien)",
+    "architect": "Joseph Maria Olbrich",
+    "era": "Jugendstil / Secession",
+    "image": "./assets/images/secession-wien.jpg"
+  },
+  {
+    "id": "warenhaus-wertheim-berlin",
+    "name": "Warenhaus Wertheim (Berlin)",
+    "architect": "Alfred Messel",
+    "era": "Historismus / Warenhausarchitektur",
+    "image": "./assets/images/warenhaus-wertheim-berlin.jpg"
+  },
+  {
+    "id": "warenhaus-tietz-berlin",
+    "name": "Warenhaus Tietz (Berlin)",
+    "architect": "(diverse, Berliner Warenhausarchitektur)",
+    "era": "Historismus / Warenhausarchitektur",
+    "image": "./assets/images/warenhaus-tietz-berlin.jpg"
+  },
+  {
+    "id": "casa-batllo",
+    "name": "Casa Batlló (Barcelona)",
+    "architect": "Antoni Gaudí",
+    "era": "Jugendstil / Modernisme",
+    "image": "./assets/images/casa-batllo.jpg"
+  },
+  {
+    "id": "chrysler-building",
+    "name": "Chrysler Building (New York)",
+    "architect": "William Van Alen",
+    "era": "Art Déco",
+    "image": "./assets/images/chrysler-building.jpg"
+  },
+  {
+    "id": "haus-goldmann-salatsch",
+    "name": "Wohn- und Geschäftshaus Goldmann & Salatsch (Wien)",
+    "architect": "Adolf Loos",
+    "era": "Moderne (frühe Strömungen)",
+    "image": "./assets/images/haus-goldmann-salatsch.jpg"
+  },
+  {
+    "id": "haus-steiner",
+    "name": "Haus Steiner (Wien)",
+    "architect": "Adolf Loos",
+    "era": "Moderne (frühe Strömungen)",
+    "image": "./assets/images/haus-steiner.jpg"
+  },
+  {
+    "id": "aeg-turbinenfabrik-montagehalle",
+    "name": "AEG-Turbinenfabrik – Montagehalle",
+    "architect": "Peter Behrens",
+    "era": "Moderne (frühe Industriearchitektur)",
+    "image": "./assets/images/aeg-turbinenfabrik-montagehalle.jpg"
+  },
+  {
+    "id": "grossmarkthalle-muenchen",
+    "name": "Großmarkthalle (München)",
+    "architect": "Richard Schachner",
+    "era": "Moderne (frühe Industriearchitektur)",
+    "image": "./assets/images/grossmarkthalle-muenchen.jpg"
+  },
+  {
+    "id": "jahrhunderthalle-breslau",
+    "name": "Jahrhunderthalle (Breslau)",
+    "architect": "Max Berg",
+    "era": "Moderne (Betonbau)",
+    "image": "./assets/images/jahrhunderthalle-breslau.jpg"
+  },
+  {
+    "id": "einsteinturm",
+    "name": "Einsteinturm (Potsdam)",
+    "architect": "Erich Mendelsohn",
+    "era": "Moderne (Expressionismus)",
+    "image": "./assets/images/einsteinturm.jpg"
+  },
+  {
+    "id": "ig-farben-verwaltung-hoechst",
+    "name": "Verwaltungsgebäude IG Farben (Höchst)",
+    "architect": "Peter Behrens",
+    "era": "Moderne",
+    "image": "./assets/images/ig-farben-verwaltung-hoechst.jpg"
+  },
+  {
+    "id": "grosses-schauspielhaus",
+    "name": "Großes Schauspielhaus (Berlin)",
+    "architect": "Hans Poelzig",
+    "era": "Moderne (Expressionismus)",
+    "image": "./assets/images/grosses-schauspielhaus.jpg"
+  },
+  {
+    "id": "chilehaus",
+    "name": "Chilehaus (Hamburg)",
+    "architect": "Fritz Höger",
+    "era": "Moderne (Backsteinexpressionismus)",
+    "image": "./assets/images/chilehaus.jpg"
+  },
+  {
+    "id": "bauhaus-dessau",
+    "name": "Bauhausgebäude (Dessau)",
+    "architect": "Walter Gropius",
+    "era": "Moderne (Bauhaus)",
+    "image": "./assets/images/bauhaus-dessau.jpg"
+  },
+  {
+    "id": "weissenhofsiedlung",
+    "name": "Weißenhofsiedlung (Stuttgart)",
+    "architect": "Le Corbusier; Pierre Jeanneret (Gesamtschau mit weiteren Architekten)",
+    "era": "Moderne",
+    "image": "./assets/images/weissenhofsiedlung.jpg"
+  },
+  {
+    "id": "villa-savoye",
+    "name": "Villa Savoye (Poissy)",
+    "architect": "Le Corbusier; Pierre Jeanneret",
+    "era": "Moderne (Internationale Moderne)",
+    "image": "./assets/images/villa-savoye.jpg"
+  },
+  {
+    "id": "deutscher-pavillon-barcelona",
+    "name": "Deutscher Pavillon (Barcelona, 1929 – Rekonstruktion)",
+    "architect": "Ludwig Mies van der Rohe",
+    "era": "Moderne (Internationale Moderne)",
+    "image": "./assets/images/deutscher-pavillon-barcelona.jpg"
+  },
+  {
+    "id": "villa-tugendhat",
+    "name": "Villa Tugendhat (Brünn)",
+    "architect": "Ludwig Mies van der Rohe",
+    "era": "Moderne (Internationale Moderne)",
+    "image": "./assets/images/villa-tugendhat.jpg"
+  },
+  {
+    "id": "villa-schminke",
+    "name": "Villa Schminke (Löbau)",
+    "architect": "Hans Scharoun",
+    "era": "Moderne",
+    "image": "./assets/images/villa-schminke.jpg"
+  },
+  {
+    "id": "fallingwater",
+    "name": "Fallingwater (Mill Run, PA)",
+    "architect": "Frank Lloyd Wright",
+    "era": "Moderne (Organische Architektur)",
+    "image": "./assets/images/fallingwater.jpg"
+  },
+  {
+    "id": "haus-kaufmann-palm-springs",
+    "name": "Haus Kaufmann (Palm Springs)",
+    "architect": "Richard Neutra",
+    "era": "Moderne",
+    "image": "./assets/images/haus-kaufmann-palm-springs.jpg"
+  },
+  {
+    "id": "neue-nationalgalerie",
+    "name": "Neue Nationalgalerie (Berlin)",
+    "architect": "Ludwig Mies van der Rohe",
+    "era": "Moderne (Nachkriegsmoderne)",
+    "image": "./assets/images/neue-nationalgalerie.jpg"
+  },
+  {
+    "id": "lever-house",
+    "name": "Lever House (New York)",
+    "architect": "Gordon Bunshaft; Natalie de Blois (SOM)",
+    "era": "Moderne (Internationale Moderne)",
+    "image": "./assets/images/lever-house.jpg"
+  },
+  {
+    "id": "seagram-building",
+    "name": "Seagram Building (New York)",
+    "architect": "Ludwig Mies van der Rohe; Philip Johnson",
+    "era": "Moderne (International Style)",
+    "image": "./assets/images/seagram-building.jpg"
+  },
+  {
+    "id": "unite-dhabitation-berlin",
+    "name": "Unité d’Habitation (Berlin, modifiziert)",
+    "architect": "Le Corbusier",
+    "era": "Moderne",
+    "image": "./assets/images/unite-dhabitation-berlin.jpg"
+  },
+  {
+    "id": "stadthalle-bremen",
+    "name": "Stadthalle (Bremen)",
+    "architect": "Roland Rainer",
+    "era": "Moderne",
+    "image": "./assets/images/stadthalle-bremen.jpg"
+  },
+  {
+    "id": "palazetto-dello-sport",
+    "name": "Palazetto dello Sport (Rom)",
+    "architect": "Pier Luigi Nervi",
+    "era": "Moderne (Ingenieurbau)",
+    "image": "./assets/images/palazetto-dello-sport.jpg"
+  },
+  {
+    "id": "gedaechtniskirche-neubau-berlin",
+    "name": "Kaiser-Wilhelm-Gedächtniskirche – Neubau",
+    "architect": "Egon Eiermann",
+    "era": "Moderne (Nachkriegsmoderne)",
+    "image": "./assets/images/gedaechtniskirche-neubau-berlin.jpg"
+  },
+  {
+    "id": "olivetti-tuerme-frankfurt",
+    "name": "Olivetti-Türme (Frankfurt a. M.)",
+    "architect": "Egon Eiermann",
+    "era": "Moderne",
+    "image": "./assets/images/olivetti-tuerme-frankfurt.jpg"
+  },
+  {
+    "id": "plaza-dos-tres-poderes-brasilia",
+    "name": "Plaza dos Três Poderes (Brasília) – Gebäudeensemble",
+    "architect": "Oscar Niemeyer",
+    "era": "Moderne",
+    "image": "./assets/images/plaza-dos-tres-poderes-brasilia.jpg"
+  },
+  {
+    "id": "deutscher-pavillon-auf-der-expo-1967-in-montreal",
+    "name": "Deutscher Pavillon – EXPO 1967 (Montreal)",
+    "architect": "Frei Otto; Rolf Gutbrod",
+    "era": "Moderne",
+    "image": "./assets/images/deutscher-pavillon-auf-der-expo-1967-in-montreal.jpg"
+  },
+  {
+    "id": "sony-building-new-york",
+    "name": "Sony Building (New York)",
+    "architect": "Philip Johnson; John Burgee",
+    "era": "Postmoderne",
+    "image": "./assets/images/sony-building-new-york.jpg"
+  },
+  {
+    "id": "centre-pompidou",
+    "name": "Centre Pompidou (Paris)",
+    "architect": "Renzo Piano; Richard Rogers",
+    "era": "High-Tech / Spätmoderne",
+    "image": "./assets/images/centre-pompidou.jpg"
+  },
+  {
+    "id": "school-of-architecture-houston",
+    "name": "School of Architecture (University of Houston)",
+    "architect": "John Burgee; Philip Johnson",
+    "era": "Postmoderne",
+    "image": "./assets/images/school-of-architecture-houston.jpg"
+  },
+  {
+    "id": "hsbc-building-hongkong",
+    "name": "HSBC Building (Hongkong)",
+    "architect": "Norman Foster",
+    "era": "High-Tech / Spätmoderne",
+    "image": "./assets/images/hsbc-building-hongkong.jpg"
+  }
+]

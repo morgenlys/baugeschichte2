@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Archi-Quiz</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="app-header">
+      <h1>Archi-Quiz</h1>
+      <div class="score">
+        <span id="streak">0</span> 🔥
+        <span class="sep">·</span>
+        <span id="score">0</span>/<span id="total">0</span> Punkte
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="prompt" id="questionText">Frage wird geladen…</div>
+
+      <figure class="image-wrap">
+        <img id="buildingImage" alt="Gebäudefoto" />
+        <figcaption id="imageCredit" class="credit"></figcaption>
+      </figure>
+
+      <!-- Multiple Choice -->
+      <div id="mcContainer" class="answers hidden" role="group" aria-label="Antwortmöglichkeiten"></div>
+
+      <!-- Freitext -->
+      <form id="inputForm" class="input-row hidden" autocomplete="off">
+        <input id="textInput" type="text" placeholder="Antwort eingeben…" aria-label="Antwort eingeben" />
+        <button type="submit" class="btn">Prüfen</button>
+      </form>
+
+      <div id="feedback" class="feedback" aria-live="polite"></div>
+
+      <div class="controls">
+        <button id="revealBtn" class="btn btn-ghost" type="button">Lösung zeigen</button>
+        <button id="nextBtn" class="btn" type="button" disabled>Nächste Frage ↻</button>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <button id="modeBtn" class="chip" type="button" title="Frage-/Antwortmodus zufällig oder festlegen">Modus: Zufall</button>
+      <button id="resetBtn" class="chip" type="button">Punktestand zurücksetzen</button>
+    </footer>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
