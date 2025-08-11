@@ -242,6 +242,7 @@
     "name": "Château Blois",
     "architect": "diverse; u.a. Domenico da Cortona; François Mansart",
     "era": "Renaissance in Europa",
+    "eraAliases": ["Barock", "Renaissance"],
     "image": "./assets/images/ch-teau-blois.jpg"
   },
   {
