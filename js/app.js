@@ -1,4 +1,5 @@
-// Archi-Quiz – Vanilla JS
+// Archi-Quiz – verbesserte Antwortlogik (Aliasse, Mehrfach-Architekten/Epochen)
+
 const UI = {
   questionText: document.getElementById("questionText"),
   image: document.getElementById("buildingImage"),
@@ -22,15 +23,11 @@ const QUESTION_TYPES = [
   { key: "era", prompt: "Welcher Epoche kann man das Gebäude zuordnen?" },
 ];
 
-const MODE = {
-  RANDOM: "ZUFALL",
-  MC_ONLY: "MC",
-  INPUT_ONLY: "INPUT",
-};
+const MODE = { RANDOM: "ZUFALL", MC_ONLY: "MC", INPUT_ONLY: "INPUT" };
 
 let state = {
   data: [],
-  current: null, // {building, qType, mode: 'mc'|'input', options: []}
+  current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
 };
@@ -41,7 +38,16 @@ const choice = (arr) => arr[rnd(arr.length)];
 const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(([_,v])=>v);
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, handle ß→ss */
+/** Entfernt Zusätze wie " – XYZ" oder "(Stadt)" */
+function stripQualifiers(s) {
+  if (!s) return "";
+  return s
+    .replace(/\s*[–—-]\s*.*$/, "")  // alles nach Gedankenstrich
+    .replace(/\s*\(.*?\)\s*/g, "")  // Klammerzusätze
+    .trim();
+}
+
+/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, ß→ss, Sankt→St */
 function normalize(str) {
   if (!str) return "";
   return str
@@ -50,12 +56,13 @@ function normalize(str) {
     .toLowerCase()
     .replace(/ß/g, "ss")
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove diacritics
-    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, "") // strip punctuation
-    .replace(/\s*&\s*/g, " und ") // & ↔ "und"
-    .replace(/\s+/g, " "); // collapse whitespace
+    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")        // punctuation -> space
+    .replace(/\s*&\s*/g, " und ")                     // & ↔ "und"
+    .replace(/\bsankt\b/g, "st")
+    .replace(/\s+/g, " ");                            // collapse whitespace
 }
 
-/** Levenshtein distance for fuzzy match */
+/** Levenshtein distance (auf normalisierten Strings) */
 function levenshtein(a, b) {
   a = normalize(a); b = normalize(b);
   const m = a.length, n = b.length;
@@ -80,48 +87,151 @@ function levenshtein(a, b) {
 }
 
 /** Flexible matcher:
- *  - accepts exact normalized matches
- *  - accepts distance <= max(1, floor(0.15 * length)) for short typos
- *  - checks against aliases (if provided)
+ *  - exakte normalisierte Übereinstimmung
+ *  - Tippfehler: distance <= ~15% (1..3)
+ *  - Start-mit (ab 4 Zeichen)
+ *  - Token-Match ("zwinger" ∈ "zwinger dresden")
+ *  - Enthält (ab 6 Zeichen)
  */
 function flexibleMatch(input, correct, aliases = []) {
-  const candidates = [correct, ...(aliases || [])].filter(Boolean);
   const normIn = normalize(input);
+  if (!normIn) return false;
+
+  const rawCandidates = [correct, ...(aliases || [])].filter(Boolean);
+  const candidates = [];
+  rawCandidates.forEach(c => {
+    candidates.push(c);
+    const stripped = stripQualifiers(c);
+    if (stripped && stripped !== c) candidates.push(stripped);
+  });
 
   for (const cand of candidates) {
     const normCand = normalize(cand);
+
     if (normIn === normCand) return true;
+
     const d = levenshtein(normIn, normCand);
     const threshold = clamp(Math.floor(normCand.length * 0.15), 1, 3);
     if (d <= threshold) return true;
-    // allow "st peter" vs "st. peter" etc. handled in normalize already
-    // allow partial if input covers ≥80% and is contained
-    if (normCand.includes(normIn) && normIn.length >= Math.floor(normCand.length * 0.8)) {
-      return true;
-    }
+
+    if (normCand.startsWith(normIn) && normIn.length >= 4) return true;
+
+    const tokens = normCand.split(" ").filter(Boolean);
+    if (tokens.includes(normIn)) return true;
+    if (tokens.some(t => t.startsWith(normIn)) && normIn.length >= 4) return true;
+
+    if (normIn.length >= 6 && normCand.includes(normIn)) return true;
   }
   return false;
 }
 
+/** Prädikate pro Fragetyp */
 function fieldFor(typeKey) {
-  if (typeKey === "architect") return { value: "architect", alias: "architectAliases" };
-  if (typeKey === "name") return { value: "name", alias: "nameAliases" };
-  if (typeKey === "era") return { value: "era", alias: "eraAliases" };
+  if (typeKey === "architect") return { key: "architect" };
+  if (typeKey === "name") return { key: "name" };
+  if (typeKey === "era") return { key: "era" };
   throw new Error("Unknown type");
 }
 
-function buildOptions(data, building, qType, count = 4) {
-  const { value, alias } = fieldFor(qType.key);
-  const correct = building[value];
-  const options = [correct];
+/** Hilfen */
+function splitList(str = "") {
+  // trennt bei ; , / und deutschen Konjunktionen
+  return String(str)
+    .split(/[/;,]| und | sowie | & | \+ /gi)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+function uniq(arr) {
+  return Array.from(new Set((arr || []).map(v => v).filter(Boolean)));
+}
 
-  // distractors: different items’ same field
-  const pool = shuffle(data.filter(b => b.id !== building.id).map(b => b[value]));
-  for (const p of pool) {
-    if (!options.includes(p)) options.push(p);
-    if (options.length >= count) break;
+/** Pretty-Joins für Anzeige */
+function joinWith(arr, sep = "; ") {
+  return (arr || []).filter(Boolean).join(sep);
+}
+
+/** erzeugt pro Gebäude ein „rich“ Objekt mit Answer-Sets */
+function enrichBuilding(raw) {
+  const b = JSON.parse(JSON.stringify(raw));
+
+  // NAME
+  const nameAliases = uniq([
+    ...(b.nameAliases || []),
+    stripQualifiers(b.name)
+  ]);
+  b._nameAnswers = uniq([b.name, ...nameAliases]);
+
+  // ARCHITEKTEN
+  const architectsFromString = splitList(b.architect);
+  const architects = uniq([
+    ...(b.architects || []),
+    ...architectsFromString
+  ]);
+  const architectAliases = uniq([
+    ...(b.architectAliases || []),
+    ...architectsFromString, // einzelne Namen auch als Alias
+  ]);
+  b._architectAnswers = uniq([...architects, ...architectAliases]);
+  b._architectDisplay = architects.length ? joinWith(architects) : b.architect || "";
+
+  // EPOCHEN
+  const eraTokens = splitList(b.era);
+  const eras = uniq([
+    ...(b.eras || []),
+    ...eraTokens
+  ]);
+  const eraAliases = uniq([
+    ...(b.eraAliases || [])
+  ]);
+  b._eraAnswers = uniq([...eras, ...eraAliases]);
+  b._eraDisplay = eras.length ? joinWith(eras, " / ") : (b.era || "");
+
+  // Feedback zur Epoche
+  if (!b.eraFeedback) {
+    const list = eras.length ? eras : (b.era ? [b.era] : []);
+    b.eraFeedback = eraFeedbackSentence(b.name, list);
   }
-  return shuffle(options.slice(0, count));
+
+  return b;
+}
+
+/** Erzeugt einen Satz wie gewünscht */
+function eraFeedbackSentence(name, erasList) {
+  const e = (erasList || []).filter(Boolean);
+  if (e.length === 0) return `Bei dem Gebäude handelt es sich um ${name}.`;
+  if (e.length === 1) return `Bei dem Gebäude handelt es sich um ${name} aus der ${e[0]}.`;
+  if (e.length === 2) return `Bei dem Gebäude handelt es sich um ${name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
+  // 3+ -> aufzählen
+  const last = e[e.length - 1];
+  const rest = e.slice(0, -1).join(", ");
+  return `Bei dem Gebäude handelt es sich um ${name} aus ${rest} und ${last}.`;
+}
+
+/** Antwortmöglichkeiten (MC) bauen – Anzeige-Strings */
+function buildOptions(data, building, qType, count = 4) {
+  const opts = [];
+  if (qType.key === "name") {
+    opts.push(building.name);
+    const pool = shuffle(data.filter(x => x.id !== building.id).map(x => x.name));
+    pool.forEach(p => { if (!opts.includes(p)) opts.push(p); });
+  } else if (qType.key === "architect") {
+    const correct = building._architectDisplay || building.architect || "";
+    opts.push(correct);
+    const pool = shuffle(
+      data.filter(x => x.id !== building.id)
+          .map(x => x._architectDisplay || x.architect || "")
+    );
+    pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
+  } else if (qType.key === "era") {
+    const correct = building._eraDisplay || building.era || "";
+    opts.push(correct);
+    const pool = shuffle(
+      data.filter(x => x.id !== building.id)
+          .map(x => x._eraDisplay || x.era || "")
+    );
+    pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
+  }
+  return shuffle(opts.slice(0, count));
 }
 
 // ---------- Rendering ----------
@@ -130,7 +240,6 @@ function setFeedback(msg, ok=false) {
   UI.feedback.classList.toggle("ok", !!ok);
   UI.feedback.classList.toggle("err", !!msg && !ok);
 }
-
 function updateScore() {
   UI.score.textContent = state.stats.score;
   UI.total.textContent = state.stats.total;
@@ -148,7 +257,6 @@ function renderQuestion() {
   setFeedback("");
   UI.nextBtn.disabled = true;
 
-  // modes
   if (mode === "mc") {
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
@@ -171,20 +279,23 @@ function renderQuestion() {
 
 function revealSolution() {
   const { building, qType } = state.current;
-  const { value } = fieldFor(qType.key);
-  const correct = building[value];
-  setFeedback(`Lösung: ${correct}`, true);
+  if (qType.key === "architect") {
+    const s = building._architectDisplay || building.architect || "";
+    setFeedback(`Lösung: ${s}`, true);
+  } else if (qType.key === "era") {
+    setFeedback(building.eraFeedback || ("Lösung: " + (building._eraDisplay || building.era || "")), true);
+  } else {
+    setFeedback(`Lösung: ${building.name}`, true);
+  }
 }
 
 // ---------- Game flow ----------
 function nextQuestion() {
   const building = choice(state.data);
   const qType = choice(QUESTION_TYPES);
-
   const modeDecider = (state.mode === MODE.RANDOM)
     ? (Math.random() < 0.5 ? "mc" : "input")
     : (state.mode === MODE.MC_ONLY ? "mc" : "input");
-
   const options = modeDecider === "mc" ? buildOptions(state.data, building, qType, 4) : [];
   state.current = { building, qType, mode: modeDecider, options };
   renderQuestion();
@@ -205,21 +316,30 @@ function markResult(ok, detailsMsg = "") {
 }
 
 // ---------- Handlers ----------
-function onMCClick(selected, btnEl) {
+function onMCClick(selected) {
   const { building, qType } = state.current;
-  const { value } = fieldFor(qType.key);
-  const correct = building[value];
 
-  const allBtns = [...UI.mcContainer.querySelectorAll(".answer")];
-  allBtns.forEach(b => {
-    const isCorrect = normalize(b.textContent) === normalize(correct);
+  // Button-Styles setzen
+  const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
+  buttons.forEach(b => b.disabled = true);
+
+  let correctDisplay = "";
+  if (qType.key === "name") correctDisplay = building.name;
+  if (qType.key === "architect") correctDisplay = building._architectDisplay || building.architect || "";
+  if (qType.key === "era") correctDisplay = building._eraDisplay || building.era || "";
+
+  buttons.forEach(b => {
+    const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
     b.classList.toggle("correct", isCorrect);
     if (!isCorrect && b.textContent === selected) b.classList.add("wrong");
-    b.disabled = true;
   });
 
-  const ok = normalize(selected) === normalize(correct);
-  const msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${correct}`;
+  const ok = normalize(selected) === normalize(correctDisplay);
+  const msg = ok
+    ? "Richtig! ✅"
+    : (qType.key === "era"
+        ? building.eraFeedback
+        : `Falsch. Richtige Antwort: ${correctDisplay}`);
   markResult(ok, msg);
 }
 
@@ -227,14 +347,27 @@ function onInputSubmit(e) {
   e.preventDefault();
   const user = UI.textInput.value;
   const { building, qType } = state.current;
-  const { value, alias } = fieldFor(qType.key);
-  const correct = building[value];
-  const aliases = building[alias] || [];
 
-  const ok = flexibleMatch(user, correct, aliases);
-  const msg = ok
-    ? "Richtig! ✅"
-    : `Falsch. Richtige Antwort: ${correct}`;
+  let ok = false;
+  let msg = "";
+
+  if (qType.key === "name") {
+    ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
+    msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
+  } else if (qType.key === "architect") {
+    const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+    ok = anyArchitect;
+    msg = ok
+      ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
+      : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
+  } else if (qType.key === "era") {
+    const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+    ok = anyEra;
+    msg = ok
+      ? building.eraFeedback
+      : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
+  }
+
   markResult(ok, msg);
 }
 
@@ -244,10 +377,8 @@ function toggleMode() {
   else state.mode = MODE.RANDOM;
 
   UI.modeBtn.textContent = `Modus: ${state.mode === MODE.RANDOM ? "Zufall" : state.mode}`;
-  // Starte neue Frage im neuen Modus
   nextQuestion();
 }
-
 function resetStats() {
   state.stats = { score: 0, total: 0, streak: 0 };
   updateScore();
@@ -257,14 +388,16 @@ function resetStats() {
 // ---------- Init ----------
 async function init() {
   try {
-    // Lade Daten
     const res = await fetch("./data/buildings.json");
-    state.data = await res.json();
+    let rawData = await res.json();
+
+    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
+    state.data = rawData.map(enrichBuilding);
 
     // Preload images (best effort)
     state.data.forEach(b => { const im = new Image(); im.src = b.image; });
 
-    // Restore score (optional)
+    // Restore score
     const saved = JSON.parse(localStorage.getItem("archiQuizStats") || "null");
     if (saved) state.stats = saved;
 
@@ -277,7 +410,7 @@ async function init() {
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
 
-    // Persist stats on change
+    // Persist stats
     const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
     ["click", "submit"].forEach(evt =>
       document.addEventListener(evt, () => persist(), { capture: true })
