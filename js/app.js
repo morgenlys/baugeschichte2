@@ -8,8 +8,8 @@ const UI = {
   inputForm: document.getElementById("inputForm"),
   textInput: document.getElementById("textInput"),
   feedback: document.getElementById("feedback"),
-  nextBtn: document.getElementById("nextBtn"),        // könnte fehlen
-  revealBtn: document.getElementById("revealBtn"),    // könnte fehlen
+  nextBtn: document.getElementById("nextBtn"),        // kann fehlen (siehe Fallback)
+  revealBtn: document.getElementById("revealBtn"),
   score: document.getElementById("score"),
   total: document.getElementById("total"),
   streak: document.getElementById("streak"),
@@ -17,7 +17,7 @@ const UI = {
   resetBtn: document.getElementById("resetBtn"),
 };
 
-// Fallback: unterstütze auch <button id="checkBtn">Überprüfen</button>
+// Fallback unterstützen (falls der Button in HTML "checkBtn" heißt)
 UI.nextBtn = UI.nextBtn || document.getElementById("checkBtn");
 
 const QUESTION_TYPES = [
@@ -33,7 +33,8 @@ let state = {
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
-  awaitingCheck: true, // true = „Überprüfen“, false = „Weiter“
+  // true = Eingabe: „Überprüfen“, false = „Weiter“ (oder MC nach Auswertung)
+  awaitingCheck: true,
 };
 
 // ---------- Utilities ----------
@@ -46,12 +47,12 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 function stripQualifiers(s) {
   if (!s) return "";
   return s
-    .replace(/\s*[–—-]\s*.*$/, "")
-    .replace(/\s*\(.*?\)\s*/g, "")
+    .replace(/\s*[–—-]\s*.*$/, "")  // alles nach Gedankenstrich
+    .replace(/\s*\(.*?\)\s*/g, "")  // Klammerzusätze
     .trim();
 }
 
-/** Normalize */
+/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, ß→ss, Sankt→St */
 function normalize(str) {
   if (!str) return "";
   return str
@@ -59,14 +60,14 @@ function normalize(str) {
     .trim()
     .toLowerCase()
     .replace(/ß/g, "ss")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")
-    .replace(/\s*&\s*/g, " und ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove diacritics
+    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")        // punctuation -> space
+    .replace(/\s*&\s*/g, " und ")                     // & ↔ "und"
     .replace(/\bsankt\b/g, "st")
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ");                            // collapse whitespace
 }
 
-/** Levenshtein */
+/** Levenshtein distance (auf normalisierten Strings) */
 function levenshtein(a, b) {
   a = normalize(a); b = normalize(b);
   const m = a.length, n = b.length;
@@ -90,7 +91,13 @@ function levenshtein(a, b) {
   return dp[n];
 }
 
-/** Flexible matcher */
+/** Flexible matcher:
+ *  - exakte normalisierte Übereinstimmung
+ *  - Tippfehler: distance <= ~15% (1..3)
+ *  - Start-mit (ab 4 Zeichen)
+ *  - Token-Match ("zwinger" ∈ "zwinger dresden")
+ *  - Enthält (ab 6 Zeichen)
+ */
 function flexibleMatch(input, correct, aliases = []) {
   const normIn = normalize(input);
   if (!normIn) return false;
@@ -133,42 +140,79 @@ function fieldFor(typeKey) {
 
 /** Hilfen */
 function splitList(str = "") {
-  return String(str).split(/[/;,]| und | sowie | & | \+ /gi).map(s => s.trim()).filter(Boolean);
+  // trennt bei ; , / und deutschen Konjunktionen
+  return String(str)
+    .split(/[/;,]| und | sowie | & | \+ /gi)
+    .map(s => s.trim())
+    .filter(Boolean);
 }
-function uniq(arr) { return Array.from(new Set((arr || []).filter(Boolean))); }
-function joinWith(arr, sep = "; ") { return (arr || []).filter(Boolean).join(sep); }
+function uniq(arr) {
+  return Array.from(new Set((arr || []).map(v => v).filter(Boolean)));
+}
 
-/** Rich-Building */
+/** Pretty-Joins für Anzeige */
+function joinWith(arr, sep = "; ") {
+  return (arr || []).filter(Boolean).join(sep);
+}
+
+/** erzeugt pro Gebäude ein „rich“ Objekt mit Answer-Sets */
 function enrichBuilding(raw) {
   const b = JSON.parse(JSON.stringify(raw));
 
-  const nameAliases = uniq([...(b.nameAliases || []), stripQualifiers(b.name)]);
+  // NAME
+  const nameAliases = uniq([
+    ...(b.nameAliases || []),
+    stripQualifiers(b.name)
+  ]);
   b._nameAnswers = uniq([b.name, ...nameAliases]);
 
+  // ARCHITEKTEN
   const architectsFromString = splitList(b.architect);
-  const architects = uniq([...(b.architects || []), ...architectsFromString]);
-  const architectAliases = uniq([...(b.architectAliases || []), ...architectsFromString]);
+  const architects = uniq([
+    ...(b.architects || []),
+    ...architectsFromString
+  ]);
+  const architectAliases = uniq([
+    ...(b.architectAliases || []),
+    ...architectsFromString, // einzelne Namen auch als Alias
+  ]);
   b._architectAnswers = uniq([...architects, ...architectAliases]);
   b._architectDisplay = architects.length ? joinWith(architects) : b.architect || "";
 
+  // EPOCHEN
   const eraTokens = splitList(b.era);
-  const eras = uniq([...(b.eras || []), ...eraTokens]);
-  const eraAliases = uniq([...(b.eraAliases || [])]);
+  const eras = uniq([
+    ...(b.eras || []),
+    ...eraTokens
+  ]);
+  const eraAliases = uniq([
+    ...(b.eraAliases || [])
+  ]);
   b._eraAnswers = uniq([...eras, ...eraAliases]);
   b._eraDisplay = eras.length ? joinWith(eras, " / ") : (b.era || "");
 
+  // Feedback zur Epoche
   if (!b.eraFeedback) {
-    const e = eras.length ? eras : (b.era ? [b.era] : []);
-    if (e.length === 0) b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name}.`;
-    else if (e.length === 1) b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name} aus der ${e[0]}.`;
-    else if (e.length === 2) b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
-    else b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name} aus ${e.slice(0, -1).join(", ")} und ${e[e.length - 1]}.`;
+    const list = eras.length ? eras : (b.era ? [b.era] : []);
+    b.eraFeedback = eraFeedbackSentence(b.name, list);
   }
 
   return b;
 }
 
-/** MC-Optionen */
+/** Erzeugt einen Satz wie gewünscht */
+function eraFeedbackSentence(name, erasList) {
+  const e = (erasList || []).filter(Boolean);
+  if (e.length === 0) return `Bei dem Gebäude handelt es sich um ${name}.`;
+  if (e.length === 1) return `Bei dem Gebäude handelt es sich um ${name} aus der ${e[0]}.`;
+  if (e.length === 2) return `Bei dem Gebäude handelt es sich um ${name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
+  // 3+ -> aufzählen
+  const last = e[e.length - 1];
+  const rest = e.slice(0, -1).join(", ");
+  return `Bei dem Gebäude handelt es sich um ${name} aus ${rest} und ${last}.`;
+}
+
+/** Antwortmöglichkeiten (MC) bauen – Anzeige-Strings */
 function buildOptions(data, building, qType, count = 4) {
   const opts = [];
   if (qType.key === "name") {
@@ -178,12 +222,18 @@ function buildOptions(data, building, qType, count = 4) {
   } else if (qType.key === "architect") {
     const correct = building._architectDisplay || building.architect || "";
     opts.push(correct);
-    const pool = shuffle(data.filter(x => x.id !== building.id).map(x => x._architectDisplay || x.architect || ""));
+    const pool = shuffle(
+      data.filter(x => x.id !== building.id)
+          .map(x => x._architectDisplay || x.architect || "")
+    );
     pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
   } else if (qType.key === "era") {
     const correct = building._eraDisplay || building.era || "";
     opts.push(correct);
-    const pool = shuffle(data.filter(x => x.id !== building.id).map(x => x._eraDisplay || x.era || ""));
+    const pool = shuffle(
+      data.filter(x => x.id !== building.id)
+          .map(x => x._eraDisplay || x.era || "")
+    );
     pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
   }
   return shuffle(opts.slice(0, count));
@@ -211,17 +261,19 @@ function renderQuestion() {
 
   setFeedback("");
 
-  // Ein-Button-Flow
-  if (UI.nextBtn) {
-    UI.nextBtn.textContent = "Überprüfen";
-    UI.nextBtn.disabled = true; // MC: bis Auswahl; Input: bis Text
-  }
-  state.awaitingCheck = true;
-
   if (mode === "mc") {
+    // MC: Eingabefeld aus, Antworten sichtbar
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML = "";
+
+    // WICHTIG: Kein „Überprüfen“-Button im MC-Modus
+    if (UI.nextBtn) {
+      UI.nextBtn.classList.add("hidden");
+      UI.nextBtn.disabled = true;   // wird erst nach Auswertung gezeigt als "Weiter"
+    }
+    state.awaitingCheck = false; // Button wird nicht zum Prüfen verwendet
+
     options.forEach(opt => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -231,10 +283,18 @@ function renderQuestion() {
       UI.mcContainer.appendChild(btn);
     });
   } else {
+    // Eingabemodus
     UI.mcContainer.classList.add("hidden");
     UI.inputForm.classList.remove("hidden");
     UI.textInput.value = "";
     UI.textInput.focus();
+
+    if (UI.nextBtn) {
+      UI.nextBtn.classList.remove("hidden");
+      UI.nextBtn.textContent = "Überprüfen";
+      UI.nextBtn.disabled = true; // wird aktiviert, sobald Text vorhanden
+    }
+    state.awaitingCheck = true;
   }
 }
 
@@ -273,27 +333,46 @@ function markResult(ok, detailsMsg = "") {
     setFeedback(detailsMsg || "Leider falsch. ❌", false);
   }
   updateScore();
+
+  // Nach Auswertung: „Weiter“-Button anzeigen/aktivieren (gilt für beide Modi)
   if (UI.nextBtn) {
-    UI.nextBtn.disabled = false;
     UI.nextBtn.textContent = "Weiter";
+    UI.nextBtn.disabled = false;
+    UI.nextBtn.classList.remove("hidden");
   }
   state.awaitingCheck = false;
 }
 
 // ---------- Handlers ----------
-function onMCClick(selected) {
+function onMCClick(selected, clickedBtn) {
+  const { building, qType } = state.current;
+
+  // sofort prüfen (kein Überprüfen-Button im MC-Modus)
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
-  buttons.forEach(b => b.classList.remove("selected", "correct", "wrong"));
+  buttons.forEach(b => b.disabled = true);
 
-  const clicked = buttons.find(b => b.textContent === selected);
-  if (clicked) clicked.classList.add("selected");
+  let correctDisplay = "";
+  if (qType.key === "name") correctDisplay = building.name;
+  if (qType.key === "architect") correctDisplay = building._architectDisplay || building.architect || "";
+  if (qType.key === "era") correctDisplay = building._eraDisplay || building.era || "";
 
-  // Sofort prüfen bei MC
-  evaluateCurrent(selected);
+  buttons.forEach(b => {
+    const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
+    b.classList.toggle("correct", isCorrect);
+    if (!isCorrect && b === clickedBtn) b.classList.add("wrong");
+  });
+
+  const ok = normalize(selected) === normalize(correctDisplay);
+  const msg = ok
+    ? "Richtig! ✅"
+    : (qType.key === "era"
+        ? building.eraFeedback
+        : `Falsch. Richtige Antwort: ${correctDisplay}`);
+  markResult(ok, msg);
 }
 
-
 function onInputSubmit(e) {
+  // Enter im Textfeld: entspricht Button-Klick
   e.preventDefault();
   if (state.awaitingCheck) {
     evaluateCurrent();
@@ -306,6 +385,7 @@ function toggleMode() {
   if (state.mode === MODE.RANDOM) state.mode = MODE.MC_ONLY;
   else if (state.mode === MODE.MC_ONLY) state.mode = MODE.INPUT_ONLY;
   else state.mode = MODE.RANDOM;
+
   UI.modeBtn.textContent = `Modus: ${state.mode === MODE.RANDOM ? "Zufall" : state.mode}`;
   nextQuestion();
 }
@@ -315,60 +395,43 @@ function resetStats() {
   setFeedback("Punktestand zurückgesetzt.", true);
 }
 
+// Zusätzliche Hilfsfunktion: Eingabemodus prüfen
 function evaluateCurrent(mcSelection = null) {
   const { building, qType, mode } = state.current;
 
   if (mode === "mc") {
+    // Wird im neuen Flow nicht mehr für MC genutzt; bleibt für Kompatibilität erhalten.
     const selectedBtn = mcSelection
       ? [...UI.mcContainer.querySelectorAll(".answer")].find(b => b.textContent === mcSelection)
       : UI.mcContainer.querySelector(".answer.selected");
-
-    if (!selectedBtn) {
-      setFeedback("Bitte eine Antwort auswählen.", false);
-      return;
-    }
-
-    let correctDisplay = "";
-    if (qType.key === "name") correctDisplay = building.name;
-    if (qType.key === "architect") correctDisplay = building._architectDisplay || building.architect || "";
-    if (qType.key === "era") correctDisplay = building._eraDisplay || building.era || "";
-
-    const ok = normalize(selectedBtn.textContent) === normalize(correctDisplay);
-
-    const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
-    buttons.forEach(b => {
-      const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
-      b.classList.toggle("correct", isCorrect);
-      b.classList.toggle("wrong", !isCorrect && b === selectedBtn);
-      b.disabled = true;
-    });
-
-    const msg = ok
-      ? "Richtig! ✅"
-      : (qType.key === "era" ? building.eraFeedback : `Falsch. Richtige Antwort: ${correctDisplay}`);
-    markResult(ok, msg);
+    if (!selectedBtn) return;
   } else {
     const user = UI.textInput.value;
-    let ok = false, msg = "";
+    let ok = false;
+    let msg = "";
+
     if (qType.key === "name") {
       ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
       msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
     } else if (qType.key === "architect") {
-      ok = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+      const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+      ok = anyArchitect;
       msg = ok
         ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
         : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
     } else if (qType.key === "era") {
-      ok = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+      const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+      ok = anyEra;
       msg = ok
         ? building.eraFeedback
         : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
     }
+
     markResult(ok, msg);
   }
 }
 
-
+// Klick-Handler für Eingabemodus („Überprüfen/Weiter“)
 function onNextCheckClick() {
   if (state.awaitingCheck) evaluateCurrent();
   else nextQuestion();
@@ -377,16 +440,15 @@ function onNextCheckClick() {
 // ---------- Init ----------
 async function init() {
   try {
-    // Loader: relativ zur index.html, mit Log
-    const dataUrl = new URL('./data/buildings.json', document.baseURI);
-    console.info('[Loader] Lade', dataUrl.toString());
-    const res = await fetch(dataUrl.toString(), { cache: 'no-store' });
+    // Loader: relativ zur index.html, wie ursprünglich
+    const res = await fetch("./data/buildings.json");
     if (!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
     const rawData = await res.json();
 
+    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
     state.data = rawData.map(enrichBuilding);
 
-    // Preload images
+    // Preload images (best effort)
     state.data.forEach(b => { const im = new Image(); im.src = b.image; });
 
     // Restore score
@@ -400,21 +462,22 @@ async function init() {
 
     if (!UI.nextBtn) {
       console.error("Kein Button mit id='nextBtn' oder 'checkBtn' gefunden.");
-      throw new Error("Fehlender Überprüfen/Weiter-Button.");
+    } else {
+      UI.nextBtn.addEventListener("click", onNextCheckClick);
     }
-    UI.nextBtn.addEventListener("click", onNextCheckClick);
 
-    if (UI.revealBtn) UI.revealBtn.classList.add("hidden");
-
+    if (UI.revealBtn) UI.revealBtn.classList.add("hidden"); // bleibt erhalten, aber verborgen
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
 
+    // Eingabe aktiviert Button im Eingabemodus
     UI.textInput.addEventListener("input", () => {
-      if (state.current && state.current.mode === "input" && state.awaitingCheck) {
+      if (state.current && state.current.mode === "input" && state.awaitingCheck && UI.nextBtn) {
         UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
       }
     });
 
+    // Persist stats
     const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
     ["click", "submit", "input"].forEach(evt =>
       document.addEventListener(evt, () => persist(), { capture: true })
@@ -422,9 +485,9 @@ async function init() {
 
     nextQuestion();
   } catch (err) {
-    console.error('[Init] Fehler:', err);
+    console.error(err);
     UI.questionText.textContent = "Fehler beim Laden der Daten.";
-    setFeedback("Konnte ./data/buildings.json nicht laden. Details in der Konsole (F12 → Console/Network).", false);
+    setFeedback("Bitte prüfe den Pfad zu data/buildings.json und den Browser-Konsolen-Log.", false);
   }
 }
 
