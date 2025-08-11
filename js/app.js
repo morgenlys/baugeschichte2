@@ -8,7 +8,6 @@ const UI = {
   inputForm: document.getElementById("inputForm"),
   textInput: document.getElementById("textInput"),
   feedback: document.getElementById("feedback"),
-  // Button kann je nach HTML "nextBtn" oder "checkBtn" heißen → Fallback:
   nextBtn: document.getElementById("nextBtn") || document.getElementById("checkBtn"),
   revealBtn: document.getElementById("revealBtn"),
   score: document.getElementById("score"),
@@ -16,7 +15,7 @@ const UI = {
   streak: document.getElementById("streak"),
   modeBtn: document.getElementById("modeBtn"),
   resetBtn: document.getElementById("resetBtn"),
-  reportBtn: document.getElementById("reportBtn"), // optional vorhanden
+  reportBtn: document.getElementById("reportBtn"),
 };
 
 const QUESTION_TYPES = [
@@ -32,7 +31,7 @@ let state = {
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
-  awaitingCheck: true, // nur im Eingabemodus relevant
+  awaitingCheck: true, // nur im Eingabemodus genutzt
 };
 
 // ---------- Utilities ----------
@@ -135,7 +134,7 @@ function renderQuestion(){
   setFeedback("");
 
   if(mode==="mc"){
-    // MC: Eingabefeld aus, Antworten sichtbar; Button komplett verstecken
+    // MC: Antworten anzeigen, Eingabe verbergen, Button verbergen
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML="";
@@ -150,11 +149,11 @@ function renderQuestion(){
       btn.type="button";
       btn.className="answer";
       btn.textContent=opt;
-      btn.addEventListener("click", ()=>onMCClick(opt, btn)); // Direkt prüfen
+      btn.addEventListener("click", ()=>onMCClick(opt, btn)); // direkt prüfen
       UI.mcContainer.appendChild(btn);
     });
   } else {
-    // Eingabemodus: Button sichtbar („Überprüfen“)
+    // Eingabemodus
     UI.mcContainer.classList.add("hidden");
     UI.inputForm.classList.remove("hidden");
     UI.textInput.value="";
@@ -163,7 +162,7 @@ function renderQuestion(){
     if(UI.nextBtn){
       UI.nextBtn.classList.remove("hidden");
       UI.nextBtn.textContent="Überprüfen";
-      UI.nextBtn.disabled=true; // wird aktiviert bei Eingabe
+      UI.nextBtn.disabled=true; // wird bei Eingabe aktiviert
     }
     state.awaitingCheck=true;
   }
@@ -173,7 +172,9 @@ function renderQuestion(){
 function nextQuestion(){
   const building=choice(state.data);
   const qType=choice(QUESTION_TYPES);
-  const modeDecider=(state.mode===MODE.RANDOM)?(Math.random()<0.5?"mc":"input"):(state.mode===MODE.MC_ONLY?"mc":"input");
+  const modeDecider=(state.mode===MODE.RANDOM)
+    ? (Math.random()<0.5?"mc":"input")
+    : (state.mode===MODE.MC_ONLY?"mc":"input");
   const options=modeDecider==="mc"?buildOptions(state.data, building, qType, 4):[];
   state.current={building,qType,mode:modeDecider,options};
   renderQuestion();
@@ -185,14 +186,11 @@ function markResult(ok, detailsMsg=""){
   else { state.stats.streak=0; setFeedback(detailsMsg||"Leider falsch. ❌", false); }
   updateScore();
 
-  // Nur im Eingabemodus „Weiter“ zeigen; im MC-Modus automatisch weiter.
-  if(state.current.mode==="input" && UI.nextBtn){
+  // **Immer** „Weiter“-Button anzeigen (MC & Eingabe)
+  if(UI.nextBtn){
     UI.nextBtn.textContent="Weiter";
     UI.nextBtn.disabled=false;
     UI.nextBtn.classList.remove("hidden");
-  } else {
-    // MC: automatische nächste Frage nach kurzer Pause
-    setTimeout(nextQuestion, 1200);
   }
   state.awaitingCheck=false;
 }
@@ -301,45 +299,41 @@ Bitte beschreibe das Problem hier:
 // ---------- Init ----------
 async function init(){
   try{
-    // Report-Button notfalls ergänzen
     ensureReportButton();
 
-    // Daten laden
     const res=await fetch("./data/buildings.json");
     if(!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
     const rawData=await res.json();
     state.data=rawData.map(enrichBuilding);
 
-    // Preload Images
     state.data.forEach(b=>{ const im=new Image(); im.src=b.image; });
 
-    // Score laden
     const saved=JSON.parse(localStorage.getItem("archiQuizStats")||"null");
     if(saved) state.stats=saved;
     updateScore();
 
-    // Events
     UI.inputForm.addEventListener("submit", onInputSubmit);
-    if (UI.nextBtn) {
+    if(UI.nextBtn){
       UI.nextBtn.addEventListener("click", ()=>{
-        // nur im Eingabemodus sichtbar: „Überprüfen → Weiter“
-        if(state.awaitingCheck) UI.inputForm.requestSubmit();
-        else nextQuestion();
+        // Im Eingabemodus: „Überprüfen → Weiter“. In MC ist der Button nur „Weiter“ nach Feedback.
+        if(state.current && state.current.mode==="input" && state.awaitingCheck){
+          UI.inputForm.requestSubmit();
+        } else {
+          nextQuestion();
+        }
       });
     }
     if(UI.revealBtn) UI.revealBtn.classList.add("hidden");
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
-    if (UI.reportBtn) UI.reportBtn.addEventListener("click", openReportIssue);
+    if(UI.reportBtn) UI.reportBtn.addEventListener("click", openReportIssue);
 
-    // Eingabe aktiviert Button im Eingabemodus
     UI.textInput.addEventListener("input", ()=>{
       if(state.current && state.current.mode==="input" && state.awaitingCheck && UI.nextBtn){
         UI.nextBtn.disabled = UI.textInput.value.trim().length===0;
       }
     });
 
-    // Persist Stats
     const persist=()=>localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
     ["click","submit","input"].forEach(evt=>document.addEventListener(evt, ()=>persist(), {capture:true}));
 
