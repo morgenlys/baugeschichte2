@@ -8,22 +8,23 @@ const UI = {
   inputForm: document.getElementById("inputForm"),
   textInput: document.getElementById("textInput"),
   feedback: document.getElementById("feedback"),
-  nextBtn: document.getElementById("nextBtn"),     // kann fehlen – wird dann erzeugt
+  // Button kann je nach HTML "nextBtn" oder "checkBtn" heißen → Fallback:
+  nextBtn: document.getElementById("nextBtn") || document.getElementById("checkBtn"),
   revealBtn: document.getElementById("revealBtn"),
   score: document.getElementById("score"),
   total: document.getElementById("total"),
   streak: document.getElementById("streak"),
   modeBtn: document.getElementById("modeBtn"),
   resetBtn: document.getElementById("resetBtn"),
-  reportBtn: document.getElementById("reportBtn"), // kann fehlen – wird dann erzeugt
+  reportBtn: document.getElementById("reportBtn"), // optional vorhanden
 };
 
-// ---------- Konstante ----------
 const QUESTION_TYPES = [
   { key: "architect", prompt: "Wie heißt der Architekt?" },
   { key: "name", prompt: "Wie heißt dieses Gebäude?" },
   { key: "era", prompt: "Welcher Epoche kann man das Gebäude zuordnen?" },
 ];
+
 const MODE = { RANDOM: "ZUFALL", MC_ONLY: "MC", INPUT_ONLY: "INPUT" };
 
 let state = {
@@ -31,7 +32,7 @@ let state = {
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
-  awaitingCheck: true, // nur im Eingabemodus
+  awaitingCheck: true, // nur im Eingabemodus relevant
 };
 
 // ---------- Utilities ----------
@@ -134,12 +135,10 @@ function renderQuestion(){
   setFeedback("");
 
   if(mode==="mc"){
-    // Eingabefeld aus, MC ein
+    // MC: Eingabefeld aus, Antworten sichtbar; Button komplett verstecken
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML="";
-
-    // Im MC-Modus keinen „Überprüfen“-Button anzeigen
     if(UI.nextBtn){
       UI.nextBtn.classList.add("hidden");
       UI.nextBtn.disabled=true;
@@ -155,7 +154,7 @@ function renderQuestion(){
       UI.mcContainer.appendChild(btn);
     });
   } else {
-    // Eingabemodus
+    // Eingabemodus: Button sichtbar („Überprüfen“)
     UI.mcContainer.classList.add("hidden");
     UI.inputForm.classList.remove("hidden");
     UI.textInput.value="";
@@ -186,11 +185,14 @@ function markResult(ok, detailsMsg=""){
   else { state.stats.streak=0; setFeedback(detailsMsg||"Leider falsch. ❌", false); }
   updateScore();
 
-  // Nach Auswertung: „Weiter“-Button sichtbar/aktiv
-  if(UI.nextBtn){
+  // Nur im Eingabemodus „Weiter“ zeigen; im MC-Modus automatisch weiter.
+  if(state.current.mode==="input" && UI.nextBtn){
     UI.nextBtn.textContent="Weiter";
     UI.nextBtn.disabled=false;
     UI.nextBtn.classList.remove("hidden");
+  } else {
+    // MC: automatische nächste Frage nach kurzer Pause
+    setTimeout(nextQuestion, 1200);
   }
   state.awaitingCheck=false;
 }
@@ -290,36 +292,19 @@ function openReportIssue(){
 
 Bitte beschreibe das Problem hier:
 `);
-
-  // >>>> HIER dein Repo eintragen <<<<
-  const repoURL="https://github.com/morgenlys/baugeschichte2/issues/new";
+  // >>>> REPO-URL anpassen <<<<
+  const repoURL="https://github.com/<DEIN_USER>/<DEIN_REPO>/issues/new";
   const url=`${repoURL}?title=${title}&body=${body}`;
   window.open(url, "_blank");
-}
-
-// ---------- Hilfsfunktionen für fehlende Elemente ----------
-function ensureNextButton(){
-  if(UI.nextBtn) return;
-  const controls=document.querySelector(".controls");
-  if(!controls) return;
-  const btn=document.createElement("button");
-  btn.id="nextBtn";
-  btn.className="btn";
-  btn.type="button";
-  btn.textContent="Überprüfen";
-  btn.disabled=true;
-  controls.appendChild(btn);
-  UI.nextBtn=btn;
 }
 
 // ---------- Init ----------
 async function init(){
   try{
-    // Sicherstellen, dass notwendige Buttons existieren
-    ensureNextButton();
+    // Report-Button notfalls ergänzen
     ensureReportButton();
 
-    // Daten laden (wie ursprünglich)
+    // Daten laden
     const res=await fetch("./data/buildings.json");
     if(!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
     const rawData=await res.json();
@@ -335,16 +320,24 @@ async function init(){
 
     // Events
     UI.inputForm.addEventListener("submit", onInputSubmit);
-    UI.nextBtn.addEventListener("click", ()=>{ state.awaitingCheck ? UI.inputForm.requestSubmit() : nextQuestion(); });
-    if(UI.revealBtn) UI.revealBtn.classList.add("hidden"); // ggf. ausblenden
+    if (UI.nextBtn) {
+      UI.nextBtn.addEventListener("click", ()=>{
+        // nur im Eingabemodus sichtbar: „Überprüfen → Weiter“
+        if(state.awaitingCheck) UI.inputForm.requestSubmit();
+        else nextQuestion();
+      });
+    }
+    if(UI.revealBtn) UI.revealBtn.classList.add("hidden");
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
+    if (UI.reportBtn) UI.reportBtn.addEventListener("click", openReportIssue);
+
+    // Eingabe aktiviert Button im Eingabemodus
     UI.textInput.addEventListener("input", ()=>{
-      if(state.current && state.current.mode==="input" && state.awaitingCheck){
+      if(state.current && state.current.mode==="input" && state.awaitingCheck && UI.nextBtn){
         UI.nextBtn.disabled = UI.textInput.value.trim().length===0;
       }
     });
-    UI.reportBtn.addEventListener("click", openReportIssue);
 
     // Persist Stats
     const persist=()=>localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
