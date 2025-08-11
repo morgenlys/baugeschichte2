@@ -8,17 +8,15 @@ const UI = {
   inputForm: document.getElementById("inputForm"),
   textInput: document.getElementById("textInput"),
   feedback: document.getElementById("feedback"),
-  nextBtn: document.getElementById("nextBtn"),        // kann fehlen (siehe Fallback)
+  nextBtn: document.getElementById("nextBtn"),
   revealBtn: document.getElementById("revealBtn"),
   score: document.getElementById("score"),
   total: document.getElementById("total"),
   streak: document.getElementById("streak"),
   modeBtn: document.getElementById("modeBtn"),
   resetBtn: document.getElementById("resetBtn"),
+  reportBtn: document.getElementById("reportBtn") // NEU
 };
-
-// Fallback unterstützen (falls der Button in HTML "checkBtn" heißt)
-UI.nextBtn = UI.nextBtn || document.getElementById("checkBtn");
 
 const QUESTION_TYPES = [
   { key: "architect", prompt: "Wie heißt der Architekt?" },
@@ -33,8 +31,6 @@ let state = {
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
-  // true = Eingabe: „Überprüfen“, false = „Weiter“ (oder MC nach Auswertung)
-  awaitingCheck: true,
 };
 
 // ---------- Utilities ----------
@@ -43,16 +39,14 @@ const choice = (arr) => arr[rnd(arr.length)];
 const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(([_,v])=>v);
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-/** Entfernt Zusätze wie " – XYZ" oder "(Stadt)" */
 function stripQualifiers(s) {
   if (!s) return "";
   return s
-    .replace(/\s*[–—-]\s*.*$/, "")  // alles nach Gedankenstrich
-    .replace(/\s*\(.*?\)\s*/g, "")  // Klammerzusätze
+    .replace(/\s*[–—-]\s*.*$/, "")
+    .replace(/\s*\(.*?\)\s*/g, "")
     .trim();
 }
 
-/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, ß→ss, Sankt→St */
 function normalize(str) {
   if (!str) return "";
   return str
@@ -60,14 +54,13 @@ function normalize(str) {
     .trim()
     .toLowerCase()
     .replace(/ß/g, "ss")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove diacritics
-    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")        // punctuation -> space
-    .replace(/\s*&\s*/g, " und ")                     // & ↔ "und"
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")
+    .replace(/\s*&\s*/g, " und ")
     .replace(/\bsankt\b/g, "st")
-    .replace(/\s+/g, " ");                            // collapse whitespace
+    .replace(/\s+/g, " ");
 }
 
-/** Levenshtein distance (auf normalisierten Strings) */
 function levenshtein(a, b) {
   a = normalize(a); b = normalize(b);
   const m = a.length, n = b.length;
@@ -91,13 +84,6 @@ function levenshtein(a, b) {
   return dp[n];
 }
 
-/** Flexible matcher:
- *  - exakte normalisierte Übereinstimmung
- *  - Tippfehler: distance <= ~15% (1..3)
- *  - Start-mit (ab 4 Zeichen)
- *  - Token-Match ("zwinger" ∈ "zwinger dresden")
- *  - Enthält (ab 6 Zeichen)
- */
 function flexibleMatch(input, correct, aliases = []) {
   const normIn = normalize(input);
   if (!normIn) return false;
@@ -130,7 +116,6 @@ function flexibleMatch(input, correct, aliases = []) {
   return false;
 }
 
-/** Prädikate pro Fragetyp */
 function fieldFor(typeKey) {
   if (typeKey === "architect") return { key: "architect" };
   if (typeKey === "name") return { key: "name" };
@@ -138,9 +123,7 @@ function fieldFor(typeKey) {
   throw new Error("Unknown type");
 }
 
-/** Hilfen */
 function splitList(str = "") {
-  // trennt bei ; , / und deutschen Konjunktionen
   return String(str)
     .split(/[/;,]| und | sowie | & | \+ /gi)
     .map(s => s.trim())
@@ -149,24 +132,19 @@ function splitList(str = "") {
 function uniq(arr) {
   return Array.from(new Set((arr || []).map(v => v).filter(Boolean)));
 }
-
-/** Pretty-Joins für Anzeige */
 function joinWith(arr, sep = "; ") {
   return (arr || []).filter(Boolean).join(sep);
 }
 
-/** erzeugt pro Gebäude ein „rich“ Objekt mit Answer-Sets */
 function enrichBuilding(raw) {
   const b = JSON.parse(JSON.stringify(raw));
 
-  // NAME
   const nameAliases = uniq([
     ...(b.nameAliases || []),
     stripQualifiers(b.name)
   ]);
   b._nameAnswers = uniq([b.name, ...nameAliases]);
 
-  // ARCHITEKTEN
   const architectsFromString = splitList(b.architect);
   const architects = uniq([
     ...(b.architects || []),
@@ -174,12 +152,11 @@ function enrichBuilding(raw) {
   ]);
   const architectAliases = uniq([
     ...(b.architectAliases || []),
-    ...architectsFromString, // einzelne Namen auch als Alias
+    ...architectsFromString
   ]);
   b._architectAnswers = uniq([...architects, ...architectAliases]);
   b._architectDisplay = architects.length ? joinWith(architects) : b.architect || "";
 
-  // EPOCHEN
   const eraTokens = splitList(b.era);
   const eras = uniq([
     ...(b.eras || []),
@@ -191,7 +168,6 @@ function enrichBuilding(raw) {
   b._eraAnswers = uniq([...eras, ...eraAliases]);
   b._eraDisplay = eras.length ? joinWith(eras, " / ") : (b.era || "");
 
-  // Feedback zur Epoche
   if (!b.eraFeedback) {
     const list = eras.length ? eras : (b.era ? [b.era] : []);
     b.eraFeedback = eraFeedbackSentence(b.name, list);
@@ -200,19 +176,16 @@ function enrichBuilding(raw) {
   return b;
 }
 
-/** Erzeugt einen Satz wie gewünscht */
 function eraFeedbackSentence(name, erasList) {
   const e = (erasList || []).filter(Boolean);
   if (e.length === 0) return `Bei dem Gebäude handelt es sich um ${name}.`;
   if (e.length === 1) return `Bei dem Gebäude handelt es sich um ${name} aus der ${e[0]}.`;
   if (e.length === 2) return `Bei dem Gebäude handelt es sich um ${name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
-  // 3+ -> aufzählen
   const last = e[e.length - 1];
   const rest = e.slice(0, -1).join(", ");
   return `Bei dem Gebäude handelt es sich um ${name} aus ${rest} und ${last}.`;
 }
 
-/** Antwortmöglichkeiten (MC) bauen – Anzeige-Strings */
 function buildOptions(data, building, qType, count = 4) {
   const opts = [];
   if (qType.key === "name") {
@@ -260,53 +233,25 @@ function renderQuestion() {
   UI.credit.textContent = building.credit || "";
 
   setFeedback("");
+  UI.nextBtn.disabled = true;
 
   if (mode === "mc") {
-    // MC: Eingabefeld aus, Antworten sichtbar
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML = "";
-
-    // Kein „Überprüfen“-Button im MC-Modus
-    if (UI.nextBtn) {
-      UI.nextBtn.classList.add("hidden");
-      UI.nextBtn.disabled = true;
-    }
-    state.awaitingCheck = false; // Button nicht zum Prüfen genutzt
-
     options.forEach(opt => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "answer";
       btn.textContent = opt;
-      btn.addEventListener("click", () => onMCClick(opt, btn));
+      btn.addEventListener("click", () => onMCClick(opt, btn)); // Direkt prüfen
       UI.mcContainer.appendChild(btn);
     });
   } else {
-    // Eingabemodus
     UI.mcContainer.classList.add("hidden");
     UI.inputForm.classList.remove("hidden");
     UI.textInput.value = "";
     UI.textInput.focus();
-
-    if (UI.nextBtn) {
-      UI.nextBtn.classList.remove("hidden");
-      UI.nextBtn.textContent = "Überprüfen";
-      UI.nextBtn.disabled = true; // aktiv, sobald Text vorhanden
-    }
-    state.awaitingCheck = true;
-  }
-}
-
-function revealSolution() {
-  const { building, qType } = state.current;
-  if (qType.key === "architect") {
-    const s = building._architectDisplay || building.architect || "";
-    setFeedback(`Lösung: ${s}`, true);
-  } else if (qType.key === "era") {
-    setFeedback(building.eraFeedback || ("Lösung: " + (building._eraDisplay || building.era || "")), true);
-  } else {
-    setFeedback(`Lösung: ${building.name}`, true);
   }
 }
 
@@ -333,21 +278,13 @@ function markResult(ok, detailsMsg = "") {
     setFeedback(detailsMsg || "Leider falsch. ❌", false);
   }
   updateScore();
-
-  // Nach Auswertung: „Weiter“-Button zeigen/aktivieren (für beide Modi)
-  if (UI.nextBtn) {
-    UI.nextBtn.textContent = "Weiter";
-    UI.nextBtn.disabled = false;
-    UI.nextBtn.classList.remove("hidden");
-  }
-  state.awaitingCheck = false;
+  UI.nextBtn.disabled = false;
 }
 
 // ---------- Handlers ----------
-function onMCClick(selected, clickedBtn) {
+function onMCClick(selected) {
   const { building, qType } = state.current;
 
-  // sofort prüfen
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b => b.disabled = true);
 
@@ -359,7 +296,7 @@ function onMCClick(selected, clickedBtn) {
   buttons.forEach(b => {
     const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
     b.classList.toggle("correct", isCorrect);
-    if (!isCorrect && b === clickedBtn) b.classList.add("wrong");
+    if (!isCorrect && b.textContent === selected) b.classList.add("wrong");
   });
 
   const ok = normalize(selected) === normalize(correctDisplay);
@@ -372,13 +309,31 @@ function onMCClick(selected, clickedBtn) {
 }
 
 function onInputSubmit(e) {
-  // Enter im Textfeld: entspricht Button-Klick
   e.preventDefault();
-  if (state.awaitingCheck) {
-    evaluateCurrent();
-  } else {
-    nextQuestion();
+  const user = UI.textInput.value;
+  const { building, qType } = state.current;
+
+  let ok = false;
+  let msg = "";
+
+  if (qType.key === "name") {
+    ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
+    msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
+  } else if (qType.key === "architect") {
+    const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+    ok = anyArchitect;
+    msg = ok
+      ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
+      : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
+  } else if (qType.key === "era") {
+    const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+    ok = anyEra;
+    msg = ok
+      ? building.eraFeedback
+      : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
   }
+
+  markResult(ok, msg);
 }
 
 function toggleMode() {
@@ -395,211 +350,56 @@ function resetStats() {
   setFeedback("Punktestand zurückgesetzt.", true);
 }
 
-// Zusätzliche Hilfsfunktion: Eingabemodus prüfen
-function evaluateCurrent(mcSelection = null) {
-  const { building, qType, mode } = state.current;
+// ---------- Problem melden ----------
+function openReportIssue() {
+  const { building, qType } = state.current;
 
-  if (mode === "mc") {
-    // bleibt für Kompatibilität erhalten (in diesem Flow ungenutzt)
-    const selectedBtn = mcSelection
-      ? [...UI.mcContainer.querySelectorAll(".answer")].find(b => b.textContent === mcSelection)
-      : UI.mcContainer.querySelector(".answer.selected");
-    if (!selectedBtn) return;
-  } else {
-    const user = UI.textInput.value;
-    let ok = false;
-    let msg = "";
+  let correctAnswer = "";
+  if (qType.key === "name") correctAnswer = building.name;
+  if (qType.key === "architect") correctAnswer = building._architectDisplay || building.architect || "";
+  if (qType.key === "era") correctAnswer = building._eraDisplay || building.era || "";
 
-    if (qType.key === "name") {
-      ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
-      msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
-    } else if (qType.key === "architect") {
-      const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
-      ok = anyArchitect;
-      msg = ok
-        ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
-        : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
-    } else if (qType.key === "era") {
-      const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
-      ok = anyEra;
-      msg = ok
-        ? building.eraFeedback
-        : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
-    }
+  const title = encodeURIComponent(`Problem bei Frage: ${qType.prompt}`);
+  const body = encodeURIComponent(
+`**Frage:** ${qType.prompt}
+**Bild:** ${building.image}
+**Korrekte Antwort:** ${correctAnswer}
+**Feedbacksatz:** ${building.eraFeedback || ""}
 
-    markResult(ok, msg);
-  }
+Bitte beschreiben Sie das Problem hier:
+`
+  );
+
+  const repoURL = "https://github.com/<DEIN_USER>/<DEIN_REPO>/issues/new";
+  const url = `${repoURL}?title=${title}&body=${body}`;
+  
+  window.open(url, "_blank");
 }
-
-// Klick-Handler für Eingabemodus („Überprüfen/Weiter“)
-function onNextCheckClick() {
-  if (state.awaitingCheck) evaluateCurrent();
-  else nextQuestion();
-}
-
-/* ======== Problem melden: Button + Modal + Download-Report ======== */
-
-function setupReportUI() {
-  // Button oben rechts in den Header einsetzen
-  const header = document.querySelector(".app-header");
-  if (!header) return;
-  const reportBtn = document.createElement("button");
-  reportBtn.id = "reportBtn";
-  reportBtn.type = "button";
-  reportBtn.className = "chip";
-  reportBtn.textContent = "Problem melden";
-  header.appendChild(reportBtn);
-
-  // Minimal-Styles fürs Modal ergänzen (falls nicht vorhanden)
-  if (!document.getElementById("reportStyles")) {
-    const style = document.createElement("style");
-    style.id = "reportStyles";
-    style.textContent = `
-      .report-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
-      .report-modal{width:min(680px,92vw);background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;display:grid;gap:12px}
-      .report-modal h3{margin:0;font-size:18px}
-      .report-actions{display:flex;gap:10px;justify-content:flex-end}
-      .report-text{width:100%;min-height:120px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font:inherit;resize:vertical}
-      .btn-cancel{background:#fff}
-    `;
-    document.head.appendChild(style);
-  }
-
-  // Modal-Struktur erzeugen (hidden)
-  const overlay = document.createElement("div");
-  overlay.className = "report-overlay hidden";
-  overlay.innerHTML = `
-    <div class="report-modal" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
-      <h3 id="reportTitle">Problem melden</h3>
-      <p>Beschreibe kurz, was nicht stimmt (z.&nbsp;B. falsche Lösung, Bild, Zuordnung):</p>
-      <textarea id="reportText" class="report-text" placeholder="Beschreibung..."></textarea>
-      <div class="report-actions">
-        <button type="button" class="btn btn-cancel" id="reportCancel">Abbrechen</button>
-        <button type="button" class="btn" id="reportSend">Melden</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  // Öffnen/Schließen
-  reportBtn.addEventListener("click", () => {
-    overlay.classList.remove("hidden");
-    const ta = overlay.querySelector("#reportText");
-    ta.value = "";
-    ta.focus();
-  });
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) overlay.classList.add("hidden");
-  });
-  overlay.querySelector("#reportCancel").addEventListener("click", () => overlay.classList.add("hidden"));
-
-  // Senden
-  overlay.querySelector("#reportSend").addEventListener("click", () => {
-    const desc = overlay.querySelector("#reportText").value.trim();
-    saveReport(desc);
-    overlay.classList.add("hidden");
-    setFeedback("Danke! Dein Hinweis wurde gespeichert. ⤵️ Datei heruntergeladen.", true);
-  });
-}
-
-function saveReport(description) {
-  const now = new Date();
-  const ts = now.toISOString();
-
-  // Aktuelle Frage/Antworten zusammenstellen
-  const cur = state.current || {};
-  const b = cur.building || {};
-  const qType = (cur.qType && cur.qType.key) || "";
-  const correct =
-    qType === "name" ? (b.name || "") :
-    qType === "architect" ? (b._architectDisplay || b.architect || "") :
-    (b._eraDisplay || b.era || "");
-  const options = (cur.mode === "mc" ? (cur.options || []) : []);
-  const eraSentence = b.eraFeedback || "";
-
-  const reportEntry =
-`=== Report @ ${ts} ===
-URL: ${location.href}
-Modus: ${cur.mode || "-"} | Frage: ${qType}
-Gebäude: ${b.name || "-"}
-Architekt: ${b._architectDisplay || b.architect || "-"}
-Epoche(n): ${b._eraDisplay || b.era || "-"}
-Bild: ${b.image || "-"}
-Korrekte Antwort: ${correct || "-"}
-Erklärungssatz: ${eraSentence || "-"}
-Antwortmöglichkeiten: ${options.length ? options.join(" | ") : "-"}
-Nutzerbeschreibung:
-${description || "(leer)"}
-
-`;
-
-  // In localStorage sammeln
-  const key = "archiQuizReports";
-  const prev = localStorage.getItem(key) || "";
-  const combined = prev + reportEntry;
-  localStorage.setItem(key, combined);
-
-  // Sofort als Textdatei zum Download anbieten
-  const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "reports_baugeschichte2.txt";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-/* ======== Ende Problem melden ======== */
 
 // ---------- Init ----------
 async function init() {
   try {
-    // Loader: relativ zur index.html, wie ursprünglich
     const res = await fetch("./data/buildings.json");
-    if (!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
-    const rawData = await res.json();
+    let rawData = await res.json();
 
-    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
     state.data = rawData.map(enrichBuilding);
-
-    // Preload images (best effort)
     state.data.forEach(b => { const im = new Image(); im.src = b.image; });
 
-    // Restore score
     const saved = JSON.parse(localStorage.getItem("archiQuizStats") || "null");
     if (saved) state.stats = saved;
 
     updateScore();
 
-    // Events
     UI.inputForm.addEventListener("submit", onInputSubmit);
-
-    if (!UI.nextBtn) {
-      console.error("Kein Button mit id='nextBtn' oder 'checkBtn' gefunden.");
-    } else {
-      UI.nextBtn.addEventListener("click", onNextCheckClick);
-    }
-
-    if (UI.revealBtn) UI.revealBtn.classList.add("hidden"); // bleibt erhalten, aber verborgen
+    UI.nextBtn.addEventListener("click", nextQuestion);
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
+    UI.reportBtn.addEventListener("click", openReportIssue);
 
-    // Eingabe aktiviert Button im Eingabemodus
-    UI.textInput.addEventListener("input", () => {
-      if (state.current && state.current.mode === "input" && state.awaitingCheck && UI.nextBtn) {
-        UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
-      }
-    });
-
-    // Persist stats
     const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
-    ["click", "submit", "input"].forEach(evt =>
+    ["click", "submit"].forEach(evt =>
       document.addEventListener(evt, () => persist(), { capture: true })
     );
-
-    // Problem-melden-UI initialisieren
-    setupReportUI();
 
     nextQuestion();
   } catch (err) {
