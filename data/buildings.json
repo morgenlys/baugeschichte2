@@ -99,7 +99,7 @@
   },
   {
     "id": "palazzo-farnese",
-    "name": "Palazzo Farnese",
+    "name": "Palazzo Farnese (Rom)",
     "architect": "Antonio da Sangallo d. J.; Michelangelo Buonarroti",
     "era": "Renaissance (Hochrenaissance)",
     "image": "./assets/images/palazzo-farnese.jpg"
@@ -183,7 +183,7 @@
   },
   {
     "id": "palazzo-farnese-caprarola",
-    "name": "Palazzo Farnese (Caprarola)",
+    "name": "Palazzo Farnese (Caprarola, nördl. von Rom)",
     "architect": "Giacomo Barozzi da Vignola",
     "era": "Manierismus",
     "image": "./assets/images/palazzo-farnese-caprarola.jpg"
