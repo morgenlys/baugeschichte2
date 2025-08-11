@@ -28,11 +28,18 @@
     "image": "./assets/images/ospedale-degli-innocenti.jpg"
   },
   {
-    "id": "klosteranlage-san-lorenzo",
-    "name": "Klosteranlage San Lorenzo – Alte Sakristei (Sagrestia Vecchia)",
-    "architect": "Filippo Brunelleschi",
+    "id": "san-lorenzo-florenz-sakristei-alt",
+    "name": "San Lorenzo – Alte Sakristei (Sagrestia Vecchia)",
+    "nameAliases": ["San Lorenzo", "Sagrestia Vecchia", "Alte Sakristei"],
+    "architect": "Filippo Brunelleschi; Donatello (Ausstattung)",
+    "architectAliases": ["Brunelleschi", "Donatello"],
+    "architects": ["Filippo Brunelleschi"], 
     "era": "Renaissance (Frührenaissance)",
-    "image": "./assets/images/klosteranlage-san-lorenzo.jpg"
+    "eras": ["Renaissance", "Frührenaissance"],
+    "eraAliases": ["Frührenaissance", "Renaissance"],
+    "eraFeedback": "Bei dem Gebäude handelt es sich um San Lorenzo – Alte Sakristei aus der Frührenaissance (Renaissance).",
+    "image": "./assets/images/klosteranlage-san-lorenzo.jpg",
+    "credit": ""
   },
   {
     "id": "pazzi-kapelle",
@@ -534,9 +541,13 @@
   {
     "id": "zwinger-dresden",
     "name": "Zwinger (Dresden)",
+    "nameAliases": ["Zwinger"],
     "architect": "Matthäus Daniel Pöppelmann",
+    "architectAliases": ["Pöppelmann", "Poepelmann"],
     "era": "Barock in Europa",
-    "image": "./assets/images/zwinger-dresden.jpg"
+    "eraAliases": ["Barock"],
+    "image": "./assets/images/zwinger-dresden.jpg",
+    "credit": ""
   },
   {
     "id": "schloss-weissenstei-n",
@@ -758,8 +769,9 @@
   {
     "id": "tour-eiffel",
     "name": "Tour Eiffel (Paris)",
+    "nameAliases": ["Eiffelturm"],
     "architect": "Gustave Eiffel",
-    "era": "Historismus / Ingenieurbau",
+    "era": "Ingenieurbau",
     "image": "./assets/images/tour-eiffel.jpg"
   },
   {
@@ -926,9 +938,13 @@
   {
     "id": "bauhaus-dessau",
     "name": "Bauhausgebäude (Dessau)",
+    "nameAliases": ["Bauhausgebäude", "Bauhaus", "Bauhaus Dessau"],
     "architect": "Walter Gropius",
+    "architectAliases": ["Gropius"],
     "era": "Moderne (Bauhaus)",
-    "image": "./assets/images/bauhaus-dessau.jpg"
+    "eraAliases": ["Moderne", "Bauhaus"],
+    "image": "./assets/images/bauhaus-dessau.jpg",
+    "credit": ""
   },
   {
     "id": "weissenhofsiedlung",
