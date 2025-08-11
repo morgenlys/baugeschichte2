@@ -39,31 +39,20 @@ const choice = (arr) => arr[rnd(arr.length)];
 const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(([_,v])=>v);
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-/** Entfernt Zusätze wie " – XYZ" oder "(Stadt)" */
 function stripQualifiers(s) {
   if (!s) return "";
-  return s
-    .replace(/\s*[–—-]\s*.*$/, "")  // alles nach Gedankenstrich
-    .replace(/\s*\(.*?\)\s*/g, "")  // Klammerzusätze
-    .trim();
+  return s.replace(/\s*[–—-]\s*.*$/, "").replace(/\s*\(.*?\)\s*/g, "").trim();
 }
-
-/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, ß→ss, Sankt→St */
 function normalize(str) {
   if (!str) return "";
-  return str
-    .toString()
-    .trim()
-    .toLowerCase()
+  return str.toString().trim().toLowerCase()
     .replace(/ß/g, "ss")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove diacritics
-    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")        // punctuation -> space
-    .replace(/\s*&\s*/g, " und ")                     // & ↔ "und"
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")
+    .replace(/\s*&\s*/g, " und ")
     .replace(/\bsankt\b/g, "st")
-    .replace(/\s+/g, " ");                            // collapse whitespace
+    .replace(/\s+/g, " ");
 }
-
-/** Levenshtein distance (auf normalisierten Strings) */
 function levenshtein(a, b) {
   a = normalize(a); b = normalize(b);
   const m = a.length, n = b.length;
@@ -76,28 +65,15 @@ function levenshtein(a, b) {
     dp[0] = i;
     for (let j = 1; j <= n; j++) {
       const tmp = dp[j];
-      dp[j] = Math.min(
-        dp[j] + 1,
-        dp[j - 1] + 1,
-        prev + (a[i - 1] === b[j - 1] ? 0 : 1)
-      );
+      dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
       prev = tmp;
     }
   }
   return dp[n];
 }
-
-/** Flexible matcher:
- *  - exakte normalisierte Übereinstimmung
- *  - Tippfehler: distance <= ~15% (1..3)
- *  - Start-mit (ab 4 Zeichen)
- *  - Token-Match ("zwinger" ∈ "zwinger dresden")
- *  - Enthält (ab 6 Zeichen)
- */
 function flexibleMatch(input, correct, aliases = []) {
   const normIn = normalize(input);
   if (!normIn) return false;
-
   const rawCandidates = [correct, ...(aliases || [])].filter(Boolean);
   const candidates = [];
   rawCandidates.forEach(c => {
@@ -105,110 +81,58 @@ function flexibleMatch(input, correct, aliases = []) {
     const stripped = stripQualifiers(c);
     if (stripped && stripped !== c) candidates.push(stripped);
   });
-
   for (const cand of candidates) {
     const normCand = normalize(cand);
-
     if (normIn === normCand) return true;
-
     const d = levenshtein(normIn, normCand);
     const threshold = clamp(Math.floor(normCand.length * 0.15), 1, 3);
     if (d <= threshold) return true;
-
     if (normCand.startsWith(normIn) && normIn.length >= 4) return true;
-
     const tokens = normCand.split(" ").filter(Boolean);
     if (tokens.includes(normIn)) return true;
     if (tokens.some(t => t.startsWith(normIn)) && normIn.length >= 4) return true;
-
     if (normIn.length >= 6 && normCand.includes(normIn)) return true;
   }
   return false;
 }
-
-/** Prädikate pro Fragetyp */
 function fieldFor(typeKey) {
   if (typeKey === "architect") return { key: "architect" };
   if (typeKey === "name") return { key: "name" };
   if (typeKey === "era") return { key: "era" };
   throw new Error("Unknown type");
 }
-
-/** Hilfen */
 function splitList(str = "") {
-  // trennt bei ; , / und deutschen Konjunktionen
-  return String(str)
-    .split(/[/;,]| und | sowie | & | \+ /gi)
-    .map(s => s.trim())
-    .filter(Boolean);
+  return String(str).split(/[/;,]| und | sowie | & | \+ /gi).map(s => s.trim()).filter(Boolean);
 }
 function uniq(arr) {
   return Array.from(new Set((arr || []).map(v => v).filter(Boolean)));
 }
-
-/** Pretty-Joins für Anzeige */
 function joinWith(arr, sep = "; ") {
   return (arr || []).filter(Boolean).join(sep);
 }
-
-/** erzeugt pro Gebäude ein „rich“ Objekt mit Answer-Sets */
 function enrichBuilding(raw) {
   const b = JSON.parse(JSON.stringify(raw));
-
-  // NAME
-  const nameAliases = uniq([
-    ...(b.nameAliases || []),
-    stripQualifiers(b.name)
-  ]);
+  const nameAliases = uniq([...(b.nameAliases || []), stripQualifiers(b.name)]);
   b._nameAnswers = uniq([b.name, ...nameAliases]);
-
-  // ARCHITEKTEN
   const architectsFromString = splitList(b.architect);
-  const architects = uniq([
-    ...(b.architects || []),
-    ...architectsFromString
-  ]);
-  const architectAliases = uniq([
-    ...(b.architectAliases || []),
-    ...architectsFromString, // einzelne Namen auch als Alias
-  ]);
+  const architects = uniq([...(b.architects || []), ...architectsFromString]);
+  const architectAliases = uniq([...(b.architectAliases || []), ...architectsFromString]);
   b._architectAnswers = uniq([...architects, ...architectAliases]);
   b._architectDisplay = architects.length ? joinWith(architects) : b.architect || "";
-
-  // EPOCHEN
   const eraTokens = splitList(b.era);
-  const eras = uniq([
-    ...(b.eras || []),
-    ...eraTokens
-  ]);
-  const eraAliases = uniq([
-    ...(b.eraAliases || [])
-  ]);
+  const eras = uniq([...(b.eras || []), ...eraTokens]);
+  const eraAliases = uniq([...(b.eraAliases || [])]);
   b._eraAnswers = uniq([...eras, ...eraAliases]);
   b._eraDisplay = eras.length ? joinWith(eras, " / ") : (b.era || "");
-
-  // Feedback zur Epoche
   if (!b.eraFeedback) {
-    const list = eras.length ? eras : (b.era ? [b.era] : []);
-    b.eraFeedback = eraFeedbackSentence(b.name, list);
+    const e = eras.length ? eras : (b.era ? [b.era] : []);
+    if (e.length === 0) b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name}.`;
+    else if (e.length === 1) b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name} aus der ${e[0]}.`;
+    else if (e.length === 2) b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
+    else b.eraFeedback = `Bei dem Gebäude handelt es sich um ${b.name} aus ${e.slice(0, -1).join(", ")} und ${e[e.length - 1]}.`;
   }
-
   return b;
 }
-
-/** Erzeugt einen Satz wie gewünscht */
-function eraFeedbackSentence(name, erasList) {
-  const e = (erasList || []).filter(Boolean);
-  if (e.length === 0) return `Bei dem Gebäude handelt es sich um ${name}.`;
-  if (e.length === 1) return `Bei dem Gebäude handelt es sich um ${name} aus der ${e[0]}.`;
-  if (e.length === 2) return `Bei dem Gebäude handelt es sich um ${name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
-  // 3+ -> aufzählen
-  const last = e[e.length - 1];
-  const rest = e.slice(0, -1).join(", ");
-  return `Bei dem Gebäude handelt es sich um ${name} aus ${rest} und ${last}.`;
-}
-
-/** Antwortmöglichkeiten (MC) bauen – Anzeige-Strings */
 function buildOptions(data, building, qType, count = 4) {
   const opts = [];
   if (qType.key === "name") {
@@ -218,18 +142,12 @@ function buildOptions(data, building, qType, count = 4) {
   } else if (qType.key === "architect") {
     const correct = building._architectDisplay || building.architect || "";
     opts.push(correct);
-    const pool = shuffle(
-      data.filter(x => x.id !== building.id)
-          .map(x => x._architectDisplay || x.architect || "")
-    );
+    const pool = shuffle(data.filter(x => x.id !== building.id).map(x => x._architectDisplay || x.architect || ""));
     pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
   } else if (qType.key === "era") {
     const correct = building._eraDisplay || building.era || "";
     opts.push(correct);
-    const pool = shuffle(
-      data.filter(x => x.id !== building.id)
-          .map(x => x._eraDisplay || x.era || "")
-    );
+    const pool = shuffle(data.filter(x => x.id !== building.id).map(x => x._eraDisplay || x.era || ""));
     pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
   }
   return shuffle(opts.slice(0, count));
@@ -249,15 +167,11 @@ function updateScore() {
 
 function renderQuestion() {
   const { building, qType, mode, options } = state.current;
-
   UI.questionText.textContent = qType.prompt;
   UI.image.src = building.image;
   UI.image.alt = `${building.name} – Bild`;
   UI.credit.textContent = building.credit || "";
-
   setFeedback("");
-
-  // Ein-Button-Flow vorbereiten
   UI.nextBtn.textContent = "Überprüfen";
   state.awaitingCheck = true;
 
@@ -284,7 +198,6 @@ function renderQuestion() {
 }
 
 function revealSolution() {
-  // bleibt vorhanden, aber UI-seitig ausgeblendet
   const { building, qType } = state.current;
   if (qType.key === "architect") {
     const s = building._architectDisplay || building.architect || "";
@@ -326,7 +239,6 @@ function markResult(ok, detailsMsg = "") {
 
 // ---------- Handlers ----------
 function onMCClick(selected) {
-  // Nur Auswahl markieren; auswerten erst bei „Überprüfen“
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b => b.classList.remove("selected", "correct", "wrong"));
   const clicked = buttons.find(b => b.textContent === selected);
@@ -335,7 +247,6 @@ function onMCClick(selected) {
 }
 
 function onInputSubmit(e) {
-  // Enter im Textfeld: wie Button
   e.preventDefault();
   if (state.awaitingCheck) evaluateCurrent();
   else nextQuestion();
@@ -345,7 +256,6 @@ function toggleMode() {
   if (state.mode === MODE.RANDOM) state.mode = MODE.MC_ONLY;
   else if (state.mode === MODE.MC_ONLY) state.mode = MODE.INPUT_ONLY;
   else state.mode = MODE.RANDOM;
-
   UI.modeBtn.textContent = `Modus: ${state.mode === MODE.RANDOM ? "Zufall" : state.mode}`;
   nextQuestion();
 }
@@ -355,7 +265,6 @@ function resetStats() {
   setFeedback("Punktestand zurückgesetzt.", true);
 }
 
-// Zusätzliche Auswertung (neu, aber keine bestehende Funktion gelöscht)
 function evaluateCurrent() {
   const { building, qType, mode } = state.current;
 
@@ -388,31 +297,23 @@ function evaluateCurrent() {
     markResult(ok, msg);
   } else {
     const user = UI.textInput.value;
-    let ok = false;
-    let msg = "";
-
+    let ok = false, msg = "";
     if (qType.key === "name") {
       ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
       msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
     } else if (qType.key === "architect") {
-      const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
-      ok = anyArchitect;
-      msg = ok
-        ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
-        : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
+      ok = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+      msg = ok ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
+               : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
     } else if (qType.key === "era") {
-      const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
-      ok = anyEra;
-      msg = ok
-        ? building.eraFeedback
-        : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
+      ok = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+      msg = ok ? building.eraFeedback
+               : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
     }
-
     markResult(ok, msg);
   }
 }
 
-// Ein-Button-Handler
 function onNextCheckClick() {
   if (state.awaitingCheck) evaluateCurrent();
   else nextQuestion();
@@ -421,14 +322,17 @@ function onNextCheckClick() {
 // ---------- Init ----------
 async function init() {
   try {
-    // *** Originaler, funktionierender Loader beibehalten ***
+    // Loader: relativ zur index.html
     const res = await fetch("./data/buildings.json");
+    if (!res.ok) {
+      console.error("buildings.json nicht geladen:", res.status, res.statusText, "URL:", res.url);
+      throw new Error("HTTP " + res.status);
+    }
     let rawData = await res.json();
 
-    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
     state.data = rawData.map(enrichBuilding);
 
-    // Preload images (best effort)
+    // Preload images
     state.data.forEach(b => { const im = new Image(); im.src = b.image; });
 
     // Restore score
@@ -440,12 +344,15 @@ async function init() {
     // Events
     UI.inputForm.addEventListener("submit", onInputSubmit);
     UI.nextBtn.addEventListener("click", onNextCheckClick);
-
-    // „Lösung zeigen“ ausblenden (Funktion bleibt vorhanden)
     if (UI.revealBtn) UI.revealBtn.classList.add("hidden");
-
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
+
+    UI.textInput.addEventListener("input", () => {
+      if (state.current && state.current.mode === "input" && state.awaitingCheck) {
+        UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
+      }
+    });
 
     // Persist stats
     const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
@@ -453,18 +360,11 @@ async function init() {
       document.addEventListener(evt, () => persist(), { capture: true })
     );
 
-    // Eingabe aktiviert Button im Input-Modus
-    UI.textInput.addEventListener("input", () => {
-      if (state.current && state.current.mode === "input" && state.awaitingCheck) {
-        UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
-      }
-    });
-
     nextQuestion();
   } catch (err) {
-    console.error(err);
+    console.error("Ladefehler buildings.json:", err);
     UI.questionText.textContent = "Fehler beim Laden der Daten.";
-    setFeedback("Bitte prüfe den Pfad zu ./data/buildings.json (GitHub Pages) und den Browser-Konsolen-Log.", false);
+    setFeedback("Konnte ./data/buildings.json nicht laden. Sieh in der Konsole nach Status & URL.", false);
   }
 }
 
