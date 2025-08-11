@@ -320,19 +320,34 @@ function onNextCheckClick() {
 }
 
 // ---------- Init ----------
+// ---------- Init ----------
 async function init() {
   try {
-    // Loader: relativ zur index.html
-    const res = await fetch("./data/buildings.json");
-    if (!res.ok) {
-      console.error("buildings.json nicht geladen:", res.status, res.statusText, "URL:", res.url);
-      throw new Error("HTTP " + res.status);
-    }
-    let rawData = await res.json();
+    // URL robust & relativ zur index.html bestimmen + Cache-Busting
+    const dataUrl = new URL('./data/buildings.json', document.baseURI);
+    dataUrl.searchParams.set('_', Date.now().toString()); // Cache bust
 
+    console.info('[Loader] Lade', dataUrl.toString());
+    const res = await fetch(dataUrl.toString(), { cache: 'no-store' });
+
+    if (!res.ok) {
+      console.error('[Loader] HTTP-Fehler', res.status, res.statusText, 'bei', res.url);
+      throw new Error(`HTTP ${res.status} (${res.statusText})`);
+    }
+
+    let rawText = await res.text();
+    try {
+      // Separat parsen, um JSON-Fehler klar zu sehen
+      var rawData = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error('[Loader] JSON-Parsefehler bei', res.url, parseErr, '\nErhaltene Antwort (erster Teil):\n', rawText.slice(0, 400));
+      throw new Error('Ungültiges JSON in data/buildings.json (siehe Konsole).');
+    }
+
+    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
     state.data = rawData.map(enrichBuilding);
 
-    // Preload images
+    // Preload images (best effort)
     state.data.forEach(b => { const im = new Image(); im.src = b.image; });
 
     // Restore score
@@ -348,6 +363,7 @@ async function init() {
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
 
+    // Button-Aktivierung für Freitext
     UI.textInput.addEventListener("input", () => {
       if (state.current && state.current.mode === "input" && state.awaitingCheck) {
         UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
@@ -362,10 +378,11 @@ async function init() {
 
     nextQuestion();
   } catch (err) {
-    console.error("Ladefehler buildings.json:", err);
+    console.error('[Init] Fehler:', err);
     UI.questionText.textContent = "Fehler beim Laden der Daten.";
-    setFeedback("Konnte ./data/buildings.json nicht laden. Sieh in der Konsole nach Status & URL.", false);
+    setFeedback("Konnte ./data/buildings.json nicht laden. Details in der Konsole (F12 → Console/Network).", false);
   }
 }
+
 
 init();
