@@ -7,13 +7,13 @@
   --btn-hover:#e5e7eb;
   --ok:#16a34a;
   --err:#dc2626;
-  --radius:14px;
-  --shadow:0 8px 24px rgba(0,0,0,.06);
+  --radius:16px;
+  --shadow:0 8px 24px rgba(0,0,0,.07);
 }
 
 /* Basis */
 *{box-sizing:border-box}
-html,body{height:100%; overflow:hidden;}           /* <- kein Scrollen */
+html,body{height:100%; overflow:hidden;}          /* kein Scrollen */
 body{
   margin:0;
   color:var(--text);
@@ -21,26 +21,26 @@ body{
   font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
-/* Vollbild-Layout: Header | Card (wächst) | Footer */
+/* Vollhöhe-Container */
 .container{
-  width:min(920px, 94vw);
+  width:min(940px, 94vw);
   margin:0 auto;
-  height:100dvh;               /* moderne Viewport-Höhe */
-  min-height:100vh;            /* Fallback */
+  /* robuste Viewport-Höhe für Mobile (Adressenleiste etc.) */
+  height:100vh;
+  height:100dvh;
+  height:100svh;
   display:grid;
-  grid-template-rows:auto 1fr auto;
+  grid-template-rows:auto 1fr auto;  /* header | card | footer */
   gap:10px;
-  padding:14px 6px;
+  padding:12px 6px env(safe-area-inset-bottom);
 }
 
 /* Header */
-.app-header{
-  display:flex; align-items:center; justify-content:space-between;
-}
-h1{ margin:0; font-weight:800; font-size:clamp(20px,2.4vw,28px); line-height:1.2; }
+.app-header{ display:flex; align-items:center; justify-content:space-between; }
+h1{ margin:0; font-weight:800; font-size:clamp(20px,2.6vw,30px); line-height:1.2; }
 .score{ color:var(--muted); font-weight:600; }
 
-/* Karte (= Mittelbereich) als Grid: Prompt | Bild (1fr) | Antworten/Input | Feedback | Controls */
+/* Card = Mittelbereich */
 .card{
   background:var(--card);
   border:1px solid var(--border);
@@ -48,50 +48,40 @@ h1{ margin:0; font-weight:800; font-size:clamp(20px,2.4vw,28px); line-height:1.2
   box-shadow:var(--shadow);
   padding:12px;
   display:grid;
-  grid-template-rows: auto 1fr auto auto auto;
-  gap:10px;
-  min-height:0;                 /* wichtig, damit das Bild schrumpfen darf */
+  grid-template-rows:auto 1fr auto auto auto;    /* Prompt | Bild | Antworten | Feedback | Controls */
+  gap:12px;
+  min-height:0;    /* wichtig: Kind (Bild) darf schrumpfen */
 }
 
 .prompt{
   text-align:center;
   font-weight:700;
-  font-size:clamp(16px,2vw,20px);
+  font-size:clamp(16px,2.2vw,20px);
   margin:0;
 }
 
-/* Bildbereich füllt die Resthöhe */
-.image-wrap{
+/* Bildbereich */
+figure.image-wrap,
+.image-wrap{                 /* <figure class="image-wrap"> … */
+  margin:0;                  /* <- Standard-40px-Margins entfernen */
   position:relative;
   width:100%;
   border:1px solid var(--border);
   border-radius:var(--radius);
   background:#f8fafc;
   overflow:hidden;
-  min-height:0;                 /* damit 1fr funktioniert */
+  min-height:0;              /* für 1fr */
 }
-.image-wrap > img{
+.image-wrap > img,
+#buildingImage{
   position:absolute; inset:0;
   width:100%; height:100%;
-  object-fit:contain;           /* proportional, zeigt alles */
+  object-fit:contain;        /* komplett sichtbar, proportional */
   display:block;
 }
+.credit{ text-align:center; font-size:12px; color:var(--muted); margin:0; }
 
-/* Falls du KEINE .image-wrap nutzt und nur #buildingImage im DOM hast */
-#buildingImage{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  display:block;
-  border-radius:var(--radius);
-  border:1px solid var(--border);
-  background:#f8fafc;
-}
-
-/* Bildquelle */
-.credit{ text-align:center; font-size:12px; color:var(--muted); }
-
-/* Multiple Choice */
+/* Antworten (MC) */
 .answers{
   display:grid;
   grid-template-columns:repeat(2, minmax(0,1fr));
@@ -153,14 +143,17 @@ input[type="text"]:focus{ border-color:#cbd5e1; box-shadow:0 0 0 4px #e5e7eb; }
 /* Footer */
 .app-footer{ display:flex; justify-content:center; gap:10px; }
 
-/* Hilfsclass */
+/* Utility */
 .hidden{ display:none !important; }
 
-/* Mobile: einspaltige Antworten & gestapelte Controls */
+/* Mobile Portrait: einspaltig, alles passt ohne Scrollen */
 @media (max-width:640px){
   .answers{ grid-template-columns:1fr; }
   .input-row{ flex-direction:column; }
   .controls{ flex-direction:column; }
+  .container{ padding:8px 6px env(safe-area-inset-bottom); }
+  .card{ gap:8px; }
+  .answer{ font-size:15px; }
 }
 
 /* Weniger Animationen, wenn gewünscht */
