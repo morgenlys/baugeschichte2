@@ -30,7 +30,7 @@ let state = {
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
-  awaitingCheck: true, // Ein-Button-Flow: true=Überprüfen, false=Weiter
+  awaitingCheck: true, // true = „Überprüfen“, false = „Weiter“
 };
 
 // ---------- Utilities ----------
@@ -43,12 +43,12 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 function stripQualifiers(s) {
   if (!s) return "";
   return s
-    .replace(/\s*[–—-]\s*.*$/, "")
-    .replace(/\s*\(.*?\)\s*/g, "")
+    .replace(/\s*[–—-]\s*.*$/, "")  // alles nach Gedankenstrich
+    .replace(/\s*\(.*?\)\s*/g, "")  // Klammerzusätze
     .trim();
 }
 
-/** Normalize */
+/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, ß→ss, Sankt→St */
 function normalize(str) {
   if (!str) return "";
   return str
@@ -56,14 +56,14 @@ function normalize(str) {
     .trim()
     .toLowerCase()
     .replace(/ß/g, "ss")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")
-    .replace(/\s*&\s*/g, " und ")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove diacritics
+    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")        // punctuation -> space
+    .replace(/\s*&\s*/g, " und ")                     // & ↔ "und"
     .replace(/\bsankt\b/g, "st")
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ");                            // collapse whitespace
 }
 
-/** Levenshtein */
+/** Levenshtein distance (auf normalisierten Strings) */
 function levenshtein(a, b) {
   a = normalize(a); b = normalize(b);
   const m = a.length, n = b.length;
@@ -87,7 +87,13 @@ function levenshtein(a, b) {
   return dp[n];
 }
 
-/** Flexible matcher */
+/** Flexible matcher:
+ *  - exakte normalisierte Übereinstimmung
+ *  - Tippfehler: distance <= ~15% (1..3)
+ *  - Start-mit (ab 4 Zeichen)
+ *  - Token-Match ("zwinger" ∈ "zwinger dresden")
+ *  - Enthält (ab 6 Zeichen)
+ */
 function flexibleMatch(input, correct, aliases = []) {
   const normIn = normalize(input);
   if (!normIn) return false;
@@ -130,6 +136,7 @@ function fieldFor(typeKey) {
 
 /** Hilfen */
 function splitList(str = "") {
+  // trennt bei ; , / und deutschen Konjunktionen
   return String(str)
     .split(/[/;,]| und | sowie | & | \+ /gi)
     .map(s => s.trim())
@@ -139,12 +146,12 @@ function uniq(arr) {
   return Array.from(new Set((arr || []).map(v => v).filter(Boolean)));
 }
 
-/** Pretty-Joins */
+/** Pretty-Joins für Anzeige */
 function joinWith(arr, sep = "; ") {
   return (arr || []).filter(Boolean).join(sep);
 }
 
-/** Rich-Building */
+/** erzeugt pro Gebäude ein „rich“ Objekt mit Answer-Sets */
 function enrichBuilding(raw) {
   const b = JSON.parse(JSON.stringify(raw));
 
@@ -163,7 +170,7 @@ function enrichBuilding(raw) {
   ]);
   const architectAliases = uniq([
     ...(b.architectAliases || []),
-    ...architectsFromString,
+    ...architectsFromString, // einzelne Namen auch als Alias
   ]);
   b._architectAnswers = uniq([...architects, ...architectAliases]);
   b._architectDisplay = architects.length ? joinWith(architects) : b.architect || "";
@@ -174,7 +181,9 @@ function enrichBuilding(raw) {
     ...(b.eras || []),
     ...eraTokens
   ]);
-  const eraAliases = uniq([...(b.eraAliases || [])]);
+  const eraAliases = uniq([
+    ...(b.eraAliases || [])
+  ]);
   b._eraAnswers = uniq([...eras, ...eraAliases]);
   b._eraDisplay = eras.length ? joinWith(eras, " / ") : (b.era || "");
 
@@ -187,18 +196,19 @@ function enrichBuilding(raw) {
   return b;
 }
 
-/** Feedback-Satz */
+/** Erzeugt einen Satz wie gewünscht */
 function eraFeedbackSentence(name, erasList) {
   const e = (erasList || []).filter(Boolean);
   if (e.length === 0) return `Bei dem Gebäude handelt es sich um ${name}.`;
   if (e.length === 1) return `Bei dem Gebäude handelt es sich um ${name} aus der ${e[0]}.`;
   if (e.length === 2) return `Bei dem Gebäude handelt es sich um ${name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
+  // 3+ -> aufzählen
   const last = e[e.length - 1];
   const rest = e.slice(0, -1).join(", ");
   return `Bei dem Gebäude handelt es sich um ${name} aus ${rest} und ${last}.`;
 }
 
-/** MC-Optionen */
+/** Antwortmöglichkeiten (MC) bauen – Anzeige-Strings */
 function buildOptions(data, building, qType, count = 4) {
   const opts = [];
   if (qType.key === "name") {
@@ -247,7 +257,7 @@ function renderQuestion() {
 
   setFeedback("");
 
-  // Ein-Button: „Überprüfen“ (bis Auswertung), dann „Weiter“
+  // Ein-Button-Flow vorbereiten
   UI.nextBtn.textContent = "Überprüfen";
   state.awaitingCheck = true;
 
@@ -255,7 +265,7 @@ function renderQuestion() {
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML = "";
-    UI.nextBtn.disabled = true; // erst nach Auswahl
+    UI.nextBtn.disabled = true; // erst aktiv nach Auswahl
     options.forEach(opt => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -274,7 +284,7 @@ function renderQuestion() {
 }
 
 function revealSolution() {
-  // bleibt erhalten (UI wird ggf. versteckt)
+  // bleibt vorhanden, aber UI-seitig ausgeblendet
   const { building, qType } = state.current;
   if (qType.key === "architect") {
     const s = building._architectDisplay || building.architect || "";
@@ -309,7 +319,6 @@ function markResult(ok, detailsMsg = "") {
     setFeedback(detailsMsg || "Leider falsch. ❌", false);
   }
   updateScore();
-
   UI.nextBtn.disabled = false;
   UI.nextBtn.textContent = "Weiter";
   state.awaitingCheck = false;
@@ -317,7 +326,7 @@ function markResult(ok, detailsMsg = "") {
 
 // ---------- Handlers ----------
 function onMCClick(selected) {
-  // Nur Auswahl markieren; Auswertung erst bei „Überprüfen“
+  // Nur Auswahl markieren; auswerten erst bei „Überprüfen“
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b => b.classList.remove("selected", "correct", "wrong"));
   const clicked = buttons.find(b => b.textContent === selected);
@@ -326,12 +335,10 @@ function onMCClick(selected) {
 }
 
 function onInputSubmit(e) {
+  // Enter im Textfeld: wie Button
   e.preventDefault();
-  if (state.awaitingCheck) {
-    evaluateCurrent();
-  } else {
-    nextQuestion();
-  }
+  if (state.awaitingCheck) evaluateCurrent();
+  else nextQuestion();
 }
 
 function toggleMode() {
@@ -348,7 +355,7 @@ function resetStats() {
   setFeedback("Punktestand zurückgesetzt.", true);
 }
 
-// Auswertung (für MC & Input)
+// Zusätzliche Auswertung (neu, aber keine bestehende Funktion gelöscht)
 function evaluateCurrent() {
   const { building, qType, mode } = state.current;
 
@@ -405,7 +412,7 @@ function evaluateCurrent() {
   }
 }
 
-// Klick-Handler für „Überprüfen/Weiter“
+// Ein-Button-Handler
 function onNextCheckClick() {
   if (state.awaitingCheck) evaluateCurrent();
   else nextQuestion();
@@ -414,42 +421,14 @@ function onNextCheckClick() {
 // ---------- Init ----------
 async function init() {
   try {
-    // Robuster Loader: probiert mehrere Pfade
-    const candidates = [
-      "./data/buildings.json",
-      "./baugeschichte2/data/buildings.json",
-      "/data/buildings.json"
-    ];
+    // *** Originaler, funktionierender Loader beibehalten ***
+    const res = await fetch("./data/buildings.json");
+    let rawData = await res.json();
 
-    let res, lastErr;
-    for (const url of candidates) {
-      try {
-        res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) {
-          console.warn(`buildings.json nicht OK (${res.status}) bei`, url);
-          continue;
-        }
-        // Sicherstellen, dass wirklich JSON kommt
-        const ct = res.headers.get("content-type") || "";
-        if (!ct.includes("application/json")) {
-          console.warn(`Unerwarteter Content-Type (${ct}) bei`, url);
-        }
-        var rawData = await res.json();
-        console.info("buildings.json geladen von:", url);
-        // Daten verarbeiten
-        state.data = rawData.map(enrichBuilding);
-        break;
-      } catch (e) {
-        lastErr = e;
-        console.warn("Fehler beim Laden von", url, e);
-      }
-    }
+    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
+    state.data = rawData.map(enrichBuilding);
 
-    if (!state.data.length) {
-      throw lastErr || new Error("Keine Daten geladen (alle Pfade fehlgeschlagen).");
-    }
-
-    // Preload images
+    // Preload images (best effort)
     state.data.forEach(b => { const im = new Image(); im.src = b.image; });
 
     // Restore score
@@ -461,28 +440,31 @@ async function init() {
     // Events
     UI.inputForm.addEventListener("submit", onInputSubmit);
     UI.nextBtn.addEventListener("click", onNextCheckClick);
+
+    // „Lösung zeigen“ ausblenden (Funktion bleibt vorhanden)
     if (UI.revealBtn) UI.revealBtn.classList.add("hidden");
+
     UI.modeBtn.addEventListener("click", toggleMode);
     UI.resetBtn.addEventListener("click", resetStats);
 
-    // Aktivier-Logik für Input
+    // Persist stats
+    const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
+    ["click", "submit"].forEach(evt =>
+      document.addEventListener(evt, () => persist(), { capture: true })
+    );
+
+    // Eingabe aktiviert Button im Input-Modus
     UI.textInput.addEventListener("input", () => {
       if (state.current && state.current.mode === "input" && state.awaitingCheck) {
         UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
       }
     });
 
-    // Persist stats
-    const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
-    ["click", "submit", "input"].forEach(evt =>
-      document.addEventListener(evt, () => persist(), { capture: true })
-    );
-
     nextQuestion();
   } catch (err) {
     console.error(err);
     UI.questionText.textContent = "Fehler beim Laden der Daten.";
-    setFeedback("Bitte prüfe den Pfad zu data/buildings.json und den Browser-Konsolen-Log.", false);
+    setFeedback("Bitte prüfe den Pfad zu ./data/buildings.json (GitHub Pages) und den Browser-Konsolen-Log.", false);
   }
 }
 
