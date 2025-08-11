@@ -26,7 +26,7 @@ const QUESTION_TYPES = [
 
 const MODE = { RANDOM: "ZUFALL", MC_ONLY: "MC", INPUT_ONLY: "INPUT" };
 
-// Liste zugelassener Architekten (kleinbuchstaben, normalisiert)
+// Nur diese Architekten zulassen (normalisierte Schreibweise!)
 const ALLOWED_ARCHITECTS = [
   "donato bramante",
   "filippo brunelleschi",
@@ -52,14 +52,14 @@ const ALLOWED_ARCHITECTS = [
   "egon eiermann",
   "leon battista alberti",
   "giuliano da sangallo"
-].map(a => a.toLowerCase());
+].map(a => normalize(a));
 
 let state = {
   data: [],
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
-  awaitingCheck: true, // nur im Eingabemodus genutzt
+  awaitingCheck: true,
 };
 
 // ---------- Utilities ----------
@@ -199,20 +199,27 @@ function nextQuestion(){
   const building=choice(state.data);
   let qType=choice(QUESTION_TYPES);
 
-  // Filter: Architektenfragen nur bei erlaubten Architekten
+  // Architektenfilter
   if(qType.key === "architect"){
     const archList = (building._architectAnswers || []).map(a => normalize(a));
     const hasAllowed = archList.some(a =>
       ALLOWED_ARCHITECTS.some(allowed => a.includes(allowed))
     );
     if(!hasAllowed){
-      return nextQuestion(); // nächste Frage wählen
+      return nextQuestion();
     }
   }
 
-  const modeDecider=(state.mode===MODE.RANDOM)
-    ? (Math.random()<0.5?"mc":"input")
-    : (state.mode===MODE.MC_ONLY?"mc":"input");
+  // Modusauswahl
+  let modeDecider;
+  if(qType.key === "era"){
+    modeDecider = "mc"; // Epoche = immer MC
+  } else {
+    modeDecider = (state.mode===MODE.RANDOM)
+      ? (Math.random()<0.5?"mc":"input")
+      : (state.mode===MODE.MC_ONLY?"mc":"input");
+  }
+
   const options=modeDecider==="mc"?buildOptions(state.data, building, qType, 4):[];
   state.current={building,qType,mode:modeDecider,options};
   renderQuestion();
@@ -223,6 +230,7 @@ function markResult(ok, detailsMsg=""){
   if(ok){ state.stats.score+=1; state.stats.streak+=1; setFeedback(detailsMsg||"Richtig! ✅", true); }
   else { state.stats.streak=0; setFeedback(detailsMsg||"Leider falsch. ❌", false); }
   updateScore();
+
   if(UI.nextBtn){
     UI.nextBtn.textContent="Weiter";
     UI.nextBtn.disabled=false;
@@ -234,6 +242,7 @@ function markResult(ok, detailsMsg=""){
 // ---------- Handlers ----------
 function onMCClick(selected, clickedBtn){
   const {building,qType}=state.current;
+
   const buttons=[...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b=>b.disabled=true);
 
@@ -334,10 +343,12 @@ Bitte beschreibe das Problem hier:
 async function init(){
   try{
     ensureReportButton();
+
     const res=await fetch("./data/buildings.json");
     if(!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
     const rawData=await res.json();
     state.data=rawData.map(enrichBuilding);
+
     state.data.forEach(b=>{ const im=new Image(); im.src=b.image; });
 
     const saved=JSON.parse(localStorage.getItem("archiQuizStats")||"null");
