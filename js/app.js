@@ -284,10 +284,14 @@ function markResult(ok, detailsMsg = "") {
 function onMCClick(selected) {
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b => b.classList.remove("selected", "correct", "wrong"));
+
   const clicked = buttons.find(b => b.textContent === selected);
   if (clicked) clicked.classList.add("selected");
-  if (UI.nextBtn && state.awaitingCheck) UI.nextBtn.disabled = false;
+
+  // Sofort prüfen bei MC
+  evaluateCurrent(selected);
 }
+
 
 function onInputSubmit(e) {
   e.preventDefault();
@@ -311,11 +315,14 @@ function resetStats() {
   setFeedback("Punktestand zurückgesetzt.", true);
 }
 
-function evaluateCurrent() {
+function evaluateCurrent(mcSelection = null) {
   const { building, qType, mode } = state.current;
 
   if (mode === "mc") {
-    const selectedBtn = UI.mcContainer.querySelector(".answer.selected");
+    const selectedBtn = mcSelection
+      ? [...UI.mcContainer.querySelectorAll(".answer")].find(b => b.textContent === mcSelection)
+      : UI.mcContainer.querySelector(".answer.selected");
+
     if (!selectedBtn) {
       setFeedback("Bitte eine Antwort auswählen.", false);
       return;
@@ -333,6 +340,7 @@ function evaluateCurrent() {
       const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
       b.classList.toggle("correct", isCorrect);
       b.classList.toggle("wrong", !isCorrect && b === selectedBtn);
+      b.disabled = true;
     });
 
     const msg = ok
@@ -343,20 +351,23 @@ function evaluateCurrent() {
     const user = UI.textInput.value;
     let ok = false, msg = "";
     if (qType.key === "name") {
-      ok = state.current.building._nameAnswers.some(ans => flexibleMatch(user, ans));
-      msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${state.current.building.name}`;
+      ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
+      msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
     } else if (qType.key === "architect") {
-      ok = (state.current.building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
-      msg = ok ? `Richtig! ✅ (${state.current.building._architectDisplay || state.current.building.architect})`
-               : `Falsch. Richtige Antwort: ${state.current.building._architectDisplay || state.current.building.architect}`;
+      ok = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+      msg = ok
+        ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
+        : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
     } else if (qType.key === "era") {
-      ok = (state.current.building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
-      msg = ok ? state.current.building.eraFeedback
-               : `Falsch. Richtige Antwort: ${state.current.building._eraDisplay || state.current.building.era}`;
+      ok = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+      msg = ok
+        ? building.eraFeedback
+        : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
     }
     markResult(ok, msg);
   }
 }
+
 
 function onNextCheckClick() {
   if (state.awaitingCheck) evaluateCurrent();
