@@ -267,12 +267,12 @@ function renderQuestion() {
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML = "";
 
-    // WICHTIG: Kein „Überprüfen“-Button im MC-Modus
+    // Kein „Überprüfen“-Button im MC-Modus
     if (UI.nextBtn) {
       UI.nextBtn.classList.add("hidden");
-      UI.nextBtn.disabled = true;   // wird erst nach Auswertung gezeigt als "Weiter"
+      UI.nextBtn.disabled = true;
     }
-    state.awaitingCheck = false; // Button wird nicht zum Prüfen verwendet
+    state.awaitingCheck = false; // Button nicht zum Prüfen genutzt
 
     options.forEach(opt => {
       const btn = document.createElement("button");
@@ -292,7 +292,7 @@ function renderQuestion() {
     if (UI.nextBtn) {
       UI.nextBtn.classList.remove("hidden");
       UI.nextBtn.textContent = "Überprüfen";
-      UI.nextBtn.disabled = true; // wird aktiviert, sobald Text vorhanden
+      UI.nextBtn.disabled = true; // aktiv, sobald Text vorhanden
     }
     state.awaitingCheck = true;
   }
@@ -334,7 +334,7 @@ function markResult(ok, detailsMsg = "") {
   }
   updateScore();
 
-  // Nach Auswertung: „Weiter“-Button anzeigen/aktivieren (gilt für beide Modi)
+  // Nach Auswertung: „Weiter“-Button zeigen/aktivieren (für beide Modi)
   if (UI.nextBtn) {
     UI.nextBtn.textContent = "Weiter";
     UI.nextBtn.disabled = false;
@@ -347,7 +347,7 @@ function markResult(ok, detailsMsg = "") {
 function onMCClick(selected, clickedBtn) {
   const { building, qType } = state.current;
 
-  // sofort prüfen (kein Überprüfen-Button im MC-Modus)
+  // sofort prüfen
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b => b.disabled = true);
 
@@ -400,7 +400,7 @@ function evaluateCurrent(mcSelection = null) {
   const { building, qType, mode } = state.current;
 
   if (mode === "mc") {
-    // Wird im neuen Flow nicht mehr für MC genutzt; bleibt für Kompatibilität erhalten.
+    // bleibt für Kompatibilität erhalten (in diesem Flow ungenutzt)
     const selectedBtn = mcSelection
       ? [...UI.mcContainer.querySelectorAll(".answer")].find(b => b.textContent === mcSelection)
       : UI.mcContainer.querySelector(".answer.selected");
@@ -436,6 +436,121 @@ function onNextCheckClick() {
   if (state.awaitingCheck) evaluateCurrent();
   else nextQuestion();
 }
+
+/* ======== Problem melden: Button + Modal + Download-Report ======== */
+
+function setupReportUI() {
+  // Button oben rechts in den Header einsetzen
+  const header = document.querySelector(".app-header");
+  if (!header) return;
+  const reportBtn = document.createElement("button");
+  reportBtn.id = "reportBtn";
+  reportBtn.type = "button";
+  reportBtn.className = "chip";
+  reportBtn.textContent = "Problem melden";
+  header.appendChild(reportBtn);
+
+  // Minimal-Styles fürs Modal ergänzen (falls nicht vorhanden)
+  if (!document.getElementById("reportStyles")) {
+    const style = document.createElement("style");
+    style.id = "reportStyles";
+    style.textContent = `
+      .report-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9999}
+      .report-modal{width:min(680px,92vw);background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:16px;display:grid;gap:12px}
+      .report-modal h3{margin:0;font-size:18px}
+      .report-actions{display:flex;gap:10px;justify-content:flex-end}
+      .report-text{width:100%;min-height:120px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;font:inherit;resize:vertical}
+      .btn-cancel{background:#fff}
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Modal-Struktur erzeugen (hidden)
+  const overlay = document.createElement("div");
+  overlay.className = "report-overlay hidden";
+  overlay.innerHTML = `
+    <div class="report-modal" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+      <h3 id="reportTitle">Problem melden</h3>
+      <p>Beschreibe kurz, was nicht stimmt (z.&nbsp;B. falsche Lösung, Bild, Zuordnung):</p>
+      <textarea id="reportText" class="report-text" placeholder="Beschreibung..."></textarea>
+      <div class="report-actions">
+        <button type="button" class="btn btn-cancel" id="reportCancel">Abbrechen</button>
+        <button type="button" class="btn" id="reportSend">Melden</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Öffnen/Schließen
+  reportBtn.addEventListener("click", () => {
+    overlay.classList.remove("hidden");
+    const ta = overlay.querySelector("#reportText");
+    ta.value = "";
+    ta.focus();
+  });
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.classList.add("hidden");
+  });
+  overlay.querySelector("#reportCancel").addEventListener("click", () => overlay.classList.add("hidden"));
+
+  // Senden
+  overlay.querySelector("#reportSend").addEventListener("click", () => {
+    const desc = overlay.querySelector("#reportText").value.trim();
+    saveReport(desc);
+    overlay.classList.add("hidden");
+    setFeedback("Danke! Dein Hinweis wurde gespeichert. ⤵️ Datei heruntergeladen.", true);
+  });
+}
+
+function saveReport(description) {
+  const now = new Date();
+  const ts = now.toISOString();
+
+  // Aktuelle Frage/Antworten zusammenstellen
+  const cur = state.current || {};
+  const b = cur.building || {};
+  const qType = (cur.qType && cur.qType.key) || "";
+  const correct =
+    qType === "name" ? (b.name || "") :
+    qType === "architect" ? (b._architectDisplay || b.architect || "") :
+    (b._eraDisplay || b.era || "");
+  const options = (cur.mode === "mc" ? (cur.options || []) : []);
+  const eraSentence = b.eraFeedback || "";
+
+  const reportEntry =
+`=== Report @ ${ts} ===
+URL: ${location.href}
+Modus: ${cur.mode || "-"} | Frage: ${qType}
+Gebäude: ${b.name || "-"}
+Architekt: ${b._architectDisplay || b.architect || "-"}
+Epoche(n): ${b._eraDisplay || b.era || "-"}
+Bild: ${b.image || "-"}
+Korrekte Antwort: ${correct || "-"}
+Erklärungssatz: ${eraSentence || "-"}
+Antwortmöglichkeiten: ${options.length ? options.join(" | ") : "-"}
+Nutzerbeschreibung:
+${description || "(leer)"}
+
+`;
+
+  // In localStorage sammeln
+  const key = "archiQuizReports";
+  const prev = localStorage.getItem(key) || "";
+  const combined = prev + reportEntry;
+  localStorage.setItem(key, combined);
+
+  // Sofort als Textdatei zum Download anbieten
+  const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "reports_baugeschichte2.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+/* ======== Ende Problem melden ======== */
 
 // ---------- Init ----------
 async function init() {
@@ -482,6 +597,9 @@ async function init() {
     ["click", "submit", "input"].forEach(evt =>
       document.addEventListener(evt, () => persist(), { capture: true })
     );
+
+    // Problem-melden-UI initialisieren
+    setupReportUI();
 
     nextQuestion();
   } catch (err) {
