@@ -1,9 +1,8 @@
 :root{
-  /* Farben + Maße */
-  --bg:#ffffff;
   --text:#0b1220;
   --muted:#6b7280;
   --border:#e5e7eb;
+  --card:#ffffff;
   --btn:#f3f4f6;
   --btn-hover:#e5e7eb;
   --ok:#16a34a;
@@ -12,97 +11,91 @@
   --shadow:0 8px 24px rgba(0,0,0,.06);
 }
 
+/* Basis */
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%; overflow:hidden;}           /* <- kein Scrollen */
 body{
   margin:0;
   color:var(--text);
-  background:var(--bg);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  background:#fff;
+  font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
 }
 
-/* Zentrierter Inhalt */
+/* Vollbild-Layout: Header | Card (wächst) | Footer */
 .container{
-  width:min(900px, 92vw);
-  margin:24px auto 40px;   /* mittig */
-  padding:0 4px;
+  width:min(920px, 94vw);
+  margin:0 auto;
+  height:100dvh;               /* moderne Viewport-Höhe */
+  min-height:100vh;            /* Fallback */
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  gap:10px;
+  padding:14px 6px;
 }
 
-/* Kopf */
+/* Header */
 .app-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:16px;
+  display:flex; align-items:center; justify-content:space-between;
 }
-h1{
-  margin:0;
-  line-height:1.2;
-  font-weight:800;
-  font-size:clamp(22px, 2.6vw, 32px);
-}
+h1{ margin:0; font-weight:800; font-size:clamp(20px,2.4vw,28px); line-height:1.2; }
 .score{ color:var(--muted); font-weight:600; }
 
-/* Karte/Block */
+/* Karte (= Mittelbereich) als Grid: Prompt | Bild (1fr) | Antworten/Input | Feedback | Controls */
 .card{
-  background:#fff;
+  background:var(--card);
   border:1px solid var(--border);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
-  padding:16px;
+  padding:12px;
+  display:grid;
+  grid-template-rows: auto 1fr auto auto auto;
+  gap:10px;
+  min-height:0;                 /* wichtig, damit das Bild schrumpfen darf */
 }
 
 .prompt{
   text-align:center;
   font-weight:700;
-  font-size:clamp(18px, 2.2vw, 22px);
-  margin:8px 0 14px;
+  font-size:clamp(16px,2vw,20px);
+  margin:0;
 }
 
-/* Bild – zwei Varianten:
-   1) Wenn du eine .image-wrap hast → 16:9 crop, always cover
-   2) Fallback nur mit #buildingImage → skaliert, nicht größer als 70vh */
+/* Bildbereich füllt die Resthöhe */
 .image-wrap{
   position:relative;
   width:100%;
-  border-radius:var(--radius);
-  overflow:hidden;
   border:1px solid var(--border);
+  border-radius:var(--radius);
   background:#f8fafc;
+  overflow:hidden;
+  min-height:0;                 /* damit 1fr funktioniert */
 }
-.image-wrap::before{ content:""; display:block; padding-top:56.25%; } /* 16:9 */
 .image-wrap > img{
   position:absolute; inset:0;
   width:100%; height:100%;
-  object-fit:cover; display:block;
+  object-fit:contain;           /* proportional, zeigt alles */
+  display:block;
 }
 
-/* Fallback falls keine .image-wrap genutzt wird */
+/* Falls du KEINE .image-wrap nutzt und nur #buildingImage im DOM hast */
 #buildingImage{
-  display:block;
   width:100%;
-  height:auto;          /* skaliert proportional */
-  max-height:70vh;      /* nie höher als Viewport */
+  height:100%;
+  object-fit:contain;
+  display:block;
   border-radius:var(--radius);
   border:1px solid var(--border);
   background:#f8fafc;
-  object-fit:contain;
 }
 
-.credit{
-  margin-top:8px;
-  text-align:center;
-  font-size:12px;
-  color:var(--muted);
-}
+/* Bildquelle */
+.credit{ text-align:center; font-size:12px; color:var(--muted); }
 
 /* Multiple Choice */
 .answers{
   display:grid;
   grid-template-columns:repeat(2, minmax(0,1fr));
   gap:10px;
-  margin:14px auto 6px;
-  max-width:760px;
 }
 .answer{
   appearance:none;
@@ -114,39 +107,29 @@ h1{
   cursor:pointer;
   font:inherit;
   text-align:center;
-  min-height:44px;                 /* mobile Tap-Ziel */
-  touch-action:manipulation;
-  transition:transform .06s ease, background .15s ease, border-color .15s ease;
+  min-height:44px; touch-action:manipulation;
+  transition:background .15s ease, transform .06s ease, border-color .15s ease;
 }
 .answer:hover{ background:var(--btn-hover); transform:translateY(-1px); }
 .answer:active{ transform:translateY(0); }
 .answer:focus-visible{ outline:2px solid #9ca3af; outline-offset:2px; }
-.answer.correct{ border-color:#16a34a33; background:#16a34a12; }
-.answer.wrong{ border-color:#dc262633; background:#dc262612; }
+.answer.correct{ border-color:#16a34a55; background:#16a34a12; }
+.answer.wrong{ border-color:#dc262655; background:#dc262612; }
 
 /* Freitext */
-.input-row{
-  display:flex;
-  gap:10px;
-  margin:14px auto 6px;
-  max-width:760px;
-}
+.input-row{ display:flex; gap:10px; }
 input[type="text"]{
-  flex:1;
+  flex:1; min-height:44px;
   padding:12px 14px;
   border-radius:12px;
   border:1px solid var(--border);
-  background:#fff;
-  color:inherit;
-  font:inherit;
-  outline:none;
-  min-height:44px;
+  background:#fff; color:inherit; font:inherit; outline:none;
 }
 input[type="text"]::placeholder{ color:#9ca3af; }
 input[type="text"]:focus{ border-color:#cbd5e1; box-shadow:0 0 0 4px #e5e7eb; }
 
-/* Buttons/Chips */
-.btn, .chip{
+/* Buttons */
+.btn,.chip{
   appearance:none;
   border:1px solid var(--border);
   background:var(--btn);
@@ -154,51 +137,33 @@ input[type="text"]:focus{ border-color:#cbd5e1; box-shadow:0 0 0 4px #e5e7eb; }
   font-weight:700;
   padding:12px 14px;
   border-radius:12px;
-  cursor:pointer;
-  min-height:44px;
-  touch-action:manipulation;
+  cursor:pointer; min-height:44px; touch-action:manipulation;
   transition:background .15s ease, transform .06s ease;
 }
-.btn:hover, .chip:hover{ background:var(--btn-hover); }
-.btn:active, .chip:active{ transform:translateY(1px); }
+.btn:hover,.chip:hover{ background:var(--btn-hover); }
+.btn:active,.chip:active{ transform:translateY(1px); }
 .btn[disabled]{ opacity:.6; cursor:not-allowed; }
 .btn-ghost{ background:#fff; }
 
-/* Steuerleiste & Feedback */
-.controls{
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  margin-top:8px;
-}
-.feedback{
-  min-height:22px;
-  text-align:center;
-  margin-top:8px;
-  font-weight:600;
-}
-.feedback.ok{ color:var(--ok); }
-.feedback.err{ color:var(--err); }
+/* Feedback & Controls */
+.feedback{ min-height:22px; text-align:center; font-weight:600; }
+.feedback.ok{ color:var(--ok); } .feedback.err{ color:var(--err); }
+.controls{ display:flex; justify-content:center; gap:10px; }
 
-.app-footer{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin-top:16px;
-}
+/* Footer */
+.app-footer{ display:flex; justify-content:center; gap:10px; }
 
-/* Utility */
+/* Hilfsclass */
 .hidden{ display:none !important; }
 
-/* Mobile Layout-Anpassungen */
+/* Mobile: einspaltige Antworten & gestapelte Controls */
 @media (max-width:640px){
-  .container{ width:94vw; margin-top:14px; }
   .answers{ grid-template-columns:1fr; }
   .input-row{ flex-direction:column; }
   .controls{ flex-direction:column; }
 }
 
-/* Barrierefreiheit: weniger Bewegung */
-@media (prefers-reduced-motion: reduce){
-  .answer, .btn, .chip{ transition:none; }
+/* Weniger Animationen, wenn gewünscht */
+@media (prefers-reduced-motion:reduce){
+  .answer,.btn,.chip{ transition:none; }
 }
