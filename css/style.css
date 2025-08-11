@@ -1,162 +1,494 @@
-:root{
-  --text:#0b1220;
-  --muted:#6b7280;
-  --border:#e5e7eb;
-  --card:#ffffff;
-  --btn:#f3f4f6;
-  --btn-hover:#e5e7eb;
-  --ok:#16a34a;
-  --err:#dc2626;
-  --radius:16px;
-  --shadow:0 8px 24px rgba(0,0,0,.07);
+// Archi-Quiz – verbesserte Antwortlogik (Aliasse, Mehrfach-Architekten/Epochen)
+
+const UI = {
+  questionText: document.getElementById("questionText"),
+  image: document.getElementById("buildingImage"),
+  credit: document.getElementById("imageCredit"),
+  mcContainer: document.getElementById("mcContainer"),
+  inputForm: document.getElementById("inputForm"),
+  textInput: document.getElementById("textInput"),
+  feedback: document.getElementById("feedback"),
+  nextBtn: document.getElementById("nextBtn"),        // kann fehlen (siehe Fallback)
+  revealBtn: document.getElementById("revealBtn"),
+  score: document.getElementById("score"),
+  total: document.getElementById("total"),
+  streak: document.getElementById("streak"),
+  modeBtn: document.getElementById("modeBtn"),
+  resetBtn: document.getElementById("resetBtn"),
+};
+
+// Fallback unterstützen (falls der Button in HTML "checkBtn" heißt)
+UI.nextBtn = UI.nextBtn || document.getElementById("checkBtn");
+
+const QUESTION_TYPES = [
+  { key: "architect", prompt: "Wie heißt der Architekt?" },
+  { key: "name", prompt: "Wie heißt dieses Gebäude?" },
+  { key: "era", prompt: "Welcher Epoche kann man das Gebäude zuordnen?" },
+];
+
+const MODE = { RANDOM: "ZUFALL", MC_ONLY: "MC", INPUT_ONLY: "INPUT" };
+
+let state = {
+  data: [],
+  current: null,
+  stats: { score: 0, total: 0, streak: 0 },
+  mode: MODE.RANDOM,
+  // true = Eingabe: „Überprüfen“, false = „Weiter“ (oder MC nach Auswertung)
+  awaitingCheck: true,
+};
+
+// ---------- Utilities ----------
+const rnd = (n) => Math.floor(Math.random() * n);
+const choice = (arr) => arr[rnd(arr.length)];
+const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(([_,v])=>v);
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+/** Entfernt Zusätze wie " – XYZ" oder "(Stadt)" */
+function stripQualifiers(s) {
+  if (!s) return "";
+  return s
+    .replace(/\s*[–—-]\s*.*$/, "")  // alles nach Gedankenstrich
+    .replace(/\s*\(.*?\)\s*/g, "")  // Klammerzusätze
+    .trim();
 }
 
-/* Basis */
-*{box-sizing:border-box}
-html,body{height:100%; overflow:hidden;}          /* kein Scrollen */
-body{
-  margin:0;
-  color:var(--text);
-  background:#fff;
-  font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, ß→ss, Sankt→St */
+function normalize(str) {
+  if (!str) return "";
+  return str
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/ß/g, "ss")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove diacritics
+    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")        // punctuation -> space
+    .replace(/\s*&\s*/g, " und ")                     // & ↔ "und"
+    .replace(/\bsankt\b/g, "st")
+    .replace(/\s+/g, " ");                            // collapse whitespace
 }
 
-/* Vollhöhe-Container */
-.container{
-  width:min(940px, 94vw);
-  margin:0 auto;
-  /* robuste Viewport-Höhe für Mobile (Adressenleiste etc.) */
-  height:100vh;
-  height:100dvh;
-  height:100svh;
-  display:grid;
-  grid-template-rows:auto 1fr auto;  /* header | card | footer */
-  gap:10px;
-  padding:12px 6px env(safe-area-inset-bottom);
+/** Levenshtein distance (auf normalisierten Strings) */
+function levenshtein(a, b) {
+  a = normalize(a); b = normalize(b);
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = new Array(n + 1);
+  for (let j = 0; j <= n; j++) dp[j] = j;
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = dp[j];
+      dp[j] = Math.min(
+        dp[j] + 1,
+        dp[j - 1] + 1,
+        prev + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+      prev = tmp;
+    }
+  }
+  return dp[n];
 }
 
-/* Header */
-.app-header{ display:flex; align-items:center; justify-content:space-between; }
-h1{ margin:0; font-weight:800; font-size:clamp(20px,2.6vw,30px); line-height:1.2; }
-.score{ color:var(--muted); font-weight:600; }
+/** Flexible matcher:
+ *  - exakte normalisierte Übereinstimmung
+ *  - Tippfehler: distance <= ~15% (1..3)
+ *  - Start-mit (ab 4 Zeichen)
+ *  - Token-Match ("zwinger" ∈ "zwinger dresden")
+ *  - Enthält (ab 6 Zeichen)
+ */
+function flexibleMatch(input, correct, aliases = []) {
+  const normIn = normalize(input);
+  if (!normIn) return false;
 
-/* Card = Mittelbereich */
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:12px;
-  display:grid;
-  grid-template-rows:auto 1fr auto auto auto;    /* Prompt | Bild | Antworten | Feedback | Controls */
-  gap:12px;
-  min-height:0;    /* wichtig: Kind (Bild) darf schrumpfen */
+  const rawCandidates = [correct, ...(aliases || [])].filter(Boolean);
+  const candidates = [];
+  rawCandidates.forEach(c => {
+    candidates.push(c);
+    const stripped = stripQualifiers(c);
+    if (stripped && stripped !== c) candidates.push(stripped);
+  });
+
+  for (const cand of candidates) {
+    const normCand = normalize(cand);
+
+    if (normIn === normCand) return true;
+
+    const d = levenshtein(normIn, normCand);
+    const threshold = clamp(Math.floor(normCand.length * 0.15), 1, 3);
+    if (d <= threshold) return true;
+
+    if (normCand.startsWith(normIn) && normIn.length >= 4) return true;
+
+    const tokens = normCand.split(" ").filter(Boolean);
+    if (tokens.includes(normIn)) return true;
+    if (tokens.some(t => t.startsWith(normIn)) && normIn.length >= 4) return true;
+
+    if (normIn.length >= 6 && normCand.includes(normIn)) return true;
+  }
+  return false;
 }
 
-.prompt{
-  text-align:center;
-  font-weight:700;
-  font-size:clamp(16px,2.2vw,20px);
-  margin:0;
+/** Prädikate pro Fragetyp */
+function fieldFor(typeKey) {
+  if (typeKey === "architect") return { key: "architect" };
+  if (typeKey === "name") return { key: "name" };
+  if (typeKey === "era") return { key: "era" };
+  throw new Error("Unknown type");
 }
 
-/* Bildbereich */
-figure.image-wrap,
-.image-wrap{                 /* <figure class="image-wrap"> … */
-  margin:0;                  /* <- Standard-40px-Margins entfernen */
-  position:relative;
-  width:100%;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  background:#f8fafc;
-  overflow:hidden;
-  min-height:0;              /* für 1fr */
+/** Hilfen */
+function splitList(str = "") {
+  // trennt bei ; , / und deutschen Konjunktionen
+  return String(str)
+    .split(/[/;,]| und | sowie | & | \+ /gi)
+    .map(s => s.trim())
+    .filter(Boolean);
 }
-.image-wrap > img,
-#buildingImage{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  object-fit:contain;        /* komplett sichtbar, proportional */
-  display:block;
-}
-.credit{ text-align:center; font-size:12px; color:var(--muted); margin:0; }
-
-/* Antworten (MC) */
-.answers{
-  display:grid;
-  grid-template-columns:repeat(2, minmax(0,1fr));
-  gap:10px;
-}
-.answer{
-  appearance:none;
-  border:1px solid var(--border);
-  background:var(--btn);
-  color:inherit;
-  padding:12px 14px;
-  border-radius:12px;
-  cursor:pointer;
-  font:inherit;
-  text-align:center;
-  min-height:44px; touch-action:manipulation;
-  transition:background .15s ease, transform .06s ease, border-color .15s ease;
-}
-.answer:hover{ background:var(--btn-hover); transform:translateY(-1px); }
-.answer:active{ transform:translateY(0); }
-.answer:focus-visible{ outline:2px solid #9ca3af; outline-offset:2px; }
-.answer.correct{ border-color:#16a34a55; background:#16a34a12; }
-.answer.wrong{ border-color:#dc262655; background:#dc262612; }
-
-/* Freitext */
-.input-row{ display:flex; gap:10px; }
-input[type="text"]{
-  flex:1; min-height:44px;
-  padding:12px 14px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  background:#fff; color:inherit; font:inherit; outline:none;
-}
-input[type="text"]::placeholder{ color:#9ca3af; }
-input[type="text"]:focus{ border-color:#cbd5e1; box-shadow:0 0 0 4px #e5e7eb; }
-
-/* Buttons */
-.btn,.chip{
-  appearance:none;
-  border:1px solid var(--border);
-  background:var(--btn);
-  color:inherit;
-  font-weight:700;
-  padding:12px 14px;
-  border-radius:12px;
-  cursor:pointer; min-height:44px; touch-action:manipulation;
-  transition:background .15s ease, transform .06s ease;
-}
-.btn:hover,.chip:hover{ background:var(--btn-hover); }
-.btn:active,.chip:active{ transform:translateY(1px); }
-.btn[disabled]{ opacity:.6; cursor:not-allowed; }
-.btn-ghost{ background:#fff; }
-
-/* Feedback & Controls */
-.feedback{ min-height:22px; text-align:center; font-weight:600; }
-.feedback.ok{ color:var(--ok); } .feedback.err{ color:var(--err); }
-.controls{ display:flex; justify-content:center; gap:10px; }
-
-/* Footer */
-.app-footer{ display:flex; justify-content:center; gap:10px; }
-
-/* Utility */
-.hidden{ display:none !important; }
-
-/* Mobile Portrait: einspaltig, alles passt ohne Scrollen */
-@media (max-width:640px){
-  .answers{ grid-template-columns:1fr; }
-  .input-row{ flex-direction:column; }
-  .controls{ flex-direction:column; }
-  .container{ padding:8px 6px env(safe-area-inset-bottom); }
-  .card{ gap:8px; }
-  .answer{ font-size:15px; }
+function uniq(arr) {
+  return Array.from(new Set((arr || []).map(v => v).filter(Boolean)));
 }
 
-/* Weniger Animationen, wenn gewünscht */
-@media (prefers-reduced-motion:reduce){
-  .answer,.btn,.chip{ transition:none; }
+/** Pretty-Joins für Anzeige */
+function joinWith(arr, sep = "; ") {
+  return (arr || []).filter(Boolean).join(sep);
 }
+
+/** erzeugt pro Gebäude ein „rich“ Objekt mit Answer-Sets */
+function enrichBuilding(raw) {
+  const b = JSON.parse(JSON.stringify(raw));
+
+  // NAME
+  const nameAliases = uniq([
+    ...(b.nameAliases || []),
+    stripQualifiers(b.name)
+  ]);
+  b._nameAnswers = uniq([b.name, ...nameAliases]);
+
+  // ARCHITEKTEN
+  const architectsFromString = splitList(b.architect);
+  const architects = uniq([
+    ...(b.architects || []),
+    ...architectsFromString
+  ]);
+  const architectAliases = uniq([
+    ...(b.architectAliases || []),
+    ...architectsFromString, // einzelne Namen auch als Alias
+  ]);
+  b._architectAnswers = uniq([...architects, ...architectAliases]);
+  b._architectDisplay = architects.length ? joinWith(architects) : b.architect || "";
+
+  // EPOCHEN
+  const eraTokens = splitList(b.era);
+  const eras = uniq([
+    ...(b.eras || []),
+    ...eraTokens
+  ]);
+  const eraAliases = uniq([
+    ...(b.eraAliases || [])
+  ]);
+  b._eraAnswers = uniq([...eras, ...eraAliases]);
+  b._eraDisplay = eras.length ? joinWith(eras, " / ") : (b.era || "");
+
+  // Feedback zur Epoche
+  if (!b.eraFeedback) {
+    const list = eras.length ? eras : (b.era ? [b.era] : []);
+    b.eraFeedback = eraFeedbackSentence(b.name, list);
+  }
+
+  return b;
+}
+
+/** Erzeugt einen Satz wie gewünscht */
+function eraFeedbackSentence(name, erasList) {
+  const e = (erasList || []).filter(Boolean);
+  if (e.length === 0) return `Bei dem Gebäude handelt es sich um ${name}.`;
+  if (e.length === 1) return `Bei dem Gebäude handelt es sich um ${name} aus der ${e[0]}.`;
+  if (e.length === 2) return `Bei dem Gebäude handelt es sich um ${name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
+  // 3+ -> aufzählen
+  const last = e[e.length - 1];
+  const rest = e.slice(0, -1).join(", ");
+  return `Bei dem Gebäude handelt es sich um ${name} aus ${rest} und ${last}.`;
+}
+
+/** Antwortmöglichkeiten (MC) bauen – Anzeige-Strings */
+function buildOptions(data, building, qType, count = 4) {
+  const opts = [];
+  if (qType.key === "name") {
+    opts.push(building.name);
+    const pool = shuffle(data.filter(x => x.id !== building.id).map(x => x.name));
+    pool.forEach(p => { if (!opts.includes(p)) opts.push(p); });
+  } else if (qType.key === "architect") {
+    const correct = building._architectDisplay || building.architect || "";
+    opts.push(correct);
+    const pool = shuffle(
+      data.filter(x => x.id !== building.id)
+          .map(x => x._architectDisplay || x.architect || "")
+    );
+    pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
+  } else if (qType.key === "era") {
+    const correct = building._eraDisplay || building.era || "";
+    opts.push(correct);
+    const pool = shuffle(
+      data.filter(x => x.id !== building.id)
+          .map(x => x._eraDisplay || x.era || "")
+    );
+    pool.forEach(p => { if (p && !opts.includes(p)) opts.push(p); });
+  }
+  return shuffle(opts.slice(0, count));
+}
+
+// ---------- Rendering ----------
+function setFeedback(msg, ok=false) {
+  UI.feedback.textContent = msg || "";
+  UI.feedback.classList.toggle("ok", !!ok);
+  UI.feedback.classList.toggle("err", !!msg && !ok);
+}
+function updateScore() {
+  UI.score.textContent = state.stats.score;
+  UI.total.textContent = state.stats.total;
+  UI.streak.textContent = state.stats.streak;
+}
+
+function renderQuestion() {
+  const { building, qType, mode, options } = state.current;
+
+  UI.questionText.textContent = qType.prompt;
+  UI.image.src = building.image;
+  UI.image.alt = `${building.name} – Bild`;
+  UI.credit.textContent = building.credit || "";
+
+  setFeedback("");
+
+  if (mode === "mc") {
+    // MC: Eingabefeld aus, Antworten sichtbar
+    UI.inputForm.classList.add("hidden");
+    UI.mcContainer.classList.remove("hidden");
+    UI.mcContainer.innerHTML = "";
+
+    // WICHTIG: Kein „Überprüfen“-Button im MC-Modus
+    if (UI.nextBtn) {
+      UI.nextBtn.classList.add("hidden");
+      UI.nextBtn.disabled = true;   // wird erst nach Auswertung gezeigt als "Weiter"
+    }
+    state.awaitingCheck = false; // Button wird nicht zum Prüfen verwendet
+
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "answer";
+      btn.textContent = opt;
+      btn.addEventListener("click", () => onMCClick(opt, btn));
+      UI.mcContainer.appendChild(btn);
+    });
+  } else {
+    // Eingabemodus
+    UI.mcContainer.classList.add("hidden");
+    UI.inputForm.classList.remove("hidden");
+    UI.textInput.value = "";
+    UI.textInput.focus();
+
+    if (UI.nextBtn) {
+      UI.nextBtn.classList.remove("hidden");
+      UI.nextBtn.textContent = "Überprüfen";
+      UI.nextBtn.disabled = true; // wird aktiviert, sobald Text vorhanden
+    }
+    state.awaitingCheck = true;
+  }
+}
+
+function revealSolution() {
+  const { building, qType } = state.current;
+  if (qType.key === "architect") {
+    const s = building._architectDisplay || building.architect || "";
+    setFeedback(`Lösung: ${s}`, true);
+  } else if (qType.key === "era") {
+    setFeedback(building.eraFeedback || ("Lösung: " + (building._eraDisplay || building.era || "")), true);
+  } else {
+    setFeedback(`Lösung: ${building.name}`, true);
+  }
+}
+
+// ---------- Game flow ----------
+function nextQuestion() {
+  const building = choice(state.data);
+  const qType = choice(QUESTION_TYPES);
+  const modeDecider = (state.mode === MODE.RANDOM)
+    ? (Math.random() < 0.5 ? "mc" : "input")
+    : (state.mode === MODE.MC_ONLY ? "mc" : "input");
+  const options = modeDecider === "mc" ? buildOptions(state.data, building, qType, 4) : [];
+  state.current = { building, qType, mode: modeDecider, options };
+  renderQuestion();
+}
+
+function markResult(ok, detailsMsg = "") {
+  state.stats.total += 1;
+  if (ok) {
+    state.stats.score += 1;
+    state.stats.streak += 1;
+    setFeedback(detailsMsg || "Richtig! ✅", true);
+  } else {
+    state.stats.streak = 0;
+    setFeedback(detailsMsg || "Leider falsch. ❌", false);
+  }
+  updateScore();
+
+  // Nach Auswertung: „Weiter“-Button anzeigen/aktivieren (gilt für beide Modi)
+  if (UI.nextBtn) {
+    UI.nextBtn.textContent = "Weiter";
+    UI.nextBtn.disabled = false;
+    UI.nextBtn.classList.remove("hidden");
+  }
+  state.awaitingCheck = false;
+}
+
+// ---------- Handlers ----------
+function onMCClick(selected, clickedBtn) {
+  const { building, qType } = state.current;
+
+  // sofort prüfen (kein Überprüfen-Button im MC-Modus)
+  const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
+  buttons.forEach(b => b.disabled = true);
+
+  let correctDisplay = "";
+  if (qType.key === "name") correctDisplay = building.name;
+  if (qType.key === "architect") correctDisplay = building._architectDisplay || building.architect || "";
+  if (qType.key === "era") correctDisplay = building._eraDisplay || building.era || "";
+
+  buttons.forEach(b => {
+    const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
+    b.classList.toggle("correct", isCorrect);
+    if (!isCorrect && b === clickedBtn) b.classList.add("wrong");
+  });
+
+  const ok = normalize(selected) === normalize(correctDisplay);
+  const msg = ok
+    ? "Richtig! ✅"
+    : (qType.key === "era"
+        ? building.eraFeedback
+        : `Falsch. Richtige Antwort: ${correctDisplay}`);
+  markResult(ok, msg);
+}
+
+function onInputSubmit(e) {
+  // Enter im Textfeld: entspricht Button-Klick
+  e.preventDefault();
+  if (state.awaitingCheck) {
+    evaluateCurrent();
+  } else {
+    nextQuestion();
+  }
+}
+
+function toggleMode() {
+  if (state.mode === MODE.RANDOM) state.mode = MODE.MC_ONLY;
+  else if (state.mode === MODE.MC_ONLY) state.mode = MODE.INPUT_ONLY;
+  else state.mode = MODE.RANDOM;
+
+  UI.modeBtn.textContent = `Modus: ${state.mode === MODE.RANDOM ? "Zufall" : state.mode}`;
+  nextQuestion();
+}
+function resetStats() {
+  state.stats = { score: 0, total: 0, streak: 0 };
+  updateScore();
+  setFeedback("Punktestand zurückgesetzt.", true);
+}
+
+// Zusätzliche Hilfsfunktion: Eingabemodus prüfen
+function evaluateCurrent(mcSelection = null) {
+  const { building, qType, mode } = state.current;
+
+  if (mode === "mc") {
+    // Wird im neuen Flow nicht mehr für MC genutzt; bleibt für Kompatibilität erhalten.
+    const selectedBtn = mcSelection
+      ? [...UI.mcContainer.querySelectorAll(".answer")].find(b => b.textContent === mcSelection)
+      : UI.mcContainer.querySelector(".answer.selected");
+    if (!selectedBtn) return;
+  } else {
+    const user = UI.textInput.value;
+    let ok = false;
+    let msg = "";
+
+    if (qType.key === "name") {
+      ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
+      msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
+    } else if (qType.key === "architect") {
+      const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+      ok = anyArchitect;
+      msg = ok
+        ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
+        : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
+    } else if (qType.key === "era") {
+      const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+      ok = anyEra;
+      msg = ok
+        ? building.eraFeedback
+        : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
+    }
+
+    markResult(ok, msg);
+  }
+}
+
+// Klick-Handler für Eingabemodus („Überprüfen/Weiter“)
+function onNextCheckClick() {
+  if (state.awaitingCheck) evaluateCurrent();
+  else nextQuestion();
+}
+
+// ---------- Init ----------
+async function init() {
+  try {
+    // Loader: relativ zur index.html, wie ursprünglich
+    const res = await fetch("./data/buildings.json");
+    if (!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
+    const rawData = await res.json();
+
+    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
+    state.data = rawData.map(enrichBuilding);
+
+    // Preload images (best effort)
+    state.data.forEach(b => { const im = new Image(); im.src = b.image; });
+
+    // Restore score
+    const saved = JSON.parse(localStorage.getItem("archiQuizStats") || "null");
+    if (saved) state.stats = saved;
+
+    updateScore();
+
+    // Events
+    UI.inputForm.addEventListener("submit", onInputSubmit);
+
+    if (!UI.nextBtn) {
+      console.error("Kein Button mit id='nextBtn' oder 'checkBtn' gefunden.");
+    } else {
+      UI.nextBtn.addEventListener("click", onNextCheckClick);
+    }
+
+    if (UI.revealBtn) UI.revealBtn.classList.add("hidden"); // bleibt erhalten, aber verborgen
+    UI.modeBtn.addEventListener("click", toggleMode);
+    UI.resetBtn.addEventListener("click", resetStats);
+
+    // Eingabe aktiviert Button im Eingabemodus
+    UI.textInput.addEventListener("input", () => {
+      if (state.current && state.current.mode === "input" && state.awaitingCheck && UI.nextBtn) {
+        UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
+      }
+    });
+
+    // Persist stats
+    const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
+    ["click", "submit", "input"].forEach(evt =>
+      document.addEventListener(evt, () => persist(), { capture: true })
+    );
+
+    nextQuestion();
+  } catch (err) {
+    console.error(err);
+    UI.questionText.textContent = "Fehler beim Laden der Daten.";
+    setFeedback("Bitte prüfe den Pfad zu data/buildings.json und den Browser-Konsolen-Log.", false);
+  }
+}
+
+init();
