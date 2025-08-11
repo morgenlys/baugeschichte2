@@ -30,6 +30,8 @@ let state = {
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
+  // Neuer Flow-Status: true = „Überprüfen“ (auswerten), false = „Weiter“ (nächste Frage)
+  awaitingCheck: true,
 };
 
 // ---------- Utilities ----------
@@ -255,12 +257,16 @@ function renderQuestion() {
   UI.credit.textContent = building.credit || "";
 
   setFeedback("");
-  UI.nextBtn.disabled = true;
+
+  // Ein-Button-Flow: Button auf „Überprüfen“ stellen und (für MC) bis Auswahl disable
+  UI.nextBtn.textContent = "Überprüfen";
+  state.awaitingCheck = true;
 
   if (mode === "mc") {
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML = "";
+    UI.nextBtn.disabled = true; // erst aktiv nach Auswahl
     options.forEach(opt => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -274,10 +280,13 @@ function renderQuestion() {
     UI.inputForm.classList.remove("hidden");
     UI.textInput.value = "";
     UI.textInput.focus();
+    // Für Freitext: aktivieren, sobald etwas drinsteht
+    UI.nextBtn.disabled = true;
   }
 }
 
 function revealSolution() {
+  // Funktion bleibt erhalten, wird aber durch UI ausgeblendet / nicht getriggert.
   const { building, qType } = state.current;
   if (qType.key === "architect") {
     const s = building._architectDisplay || building.architect || "";
@@ -312,63 +321,35 @@ function markResult(ok, detailsMsg = "") {
     setFeedback(detailsMsg || "Leider falsch. ❌", false);
   }
   updateScore();
+
+  // Ein-Button-Flow: Jetzt „Weiter“
   UI.nextBtn.disabled = false;
+  UI.nextBtn.textContent = "Weiter";
+  state.awaitingCheck = false;
 }
 
 // ---------- Handlers ----------
 function onMCClick(selected) {
-  const { building, qType } = state.current;
-
-  // Button-Styles setzen
+  // NEU: Nur Auswahl markieren; Auswertung erst beim Klick auf „Überprüfen“
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
-  buttons.forEach(b => b.disabled = true);
+  buttons.forEach(b => b.classList.remove("selected", "correct", "wrong"));
 
-  let correctDisplay = "";
-  if (qType.key === "name") correctDisplay = building.name;
-  if (qType.key === "architect") correctDisplay = building._architectDisplay || building.architect || "";
-  if (qType.key === "era") correctDisplay = building._eraDisplay || building.era || "";
+  // markiere Auswahl
+  const clicked = buttons.find(b => b.textContent === selected);
+  if (clicked) clicked.classList.add("selected");
 
-  buttons.forEach(b => {
-    const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
-    b.classList.toggle("correct", isCorrect);
-    if (!isCorrect && b.textContent === selected) b.classList.add("wrong");
-  });
-
-  const ok = normalize(selected) === normalize(correctDisplay);
-  const msg = ok
-    ? "Richtig! ✅"
-    : (qType.key === "era"
-        ? building.eraFeedback
-        : `Falsch. Richtige Antwort: ${correctDisplay}`);
-  markResult(ok, msg);
+  // „Überprüfen“ aktivieren
+  UI.nextBtn.disabled = false;
 }
 
 function onInputSubmit(e) {
+  // Enter im Textfeld soll dem Klick auf „Überprüfen“ entsprechen
   e.preventDefault();
-  const user = UI.textInput.value;
-  const { building, qType } = state.current;
-
-  let ok = false;
-  let msg = "";
-
-  if (qType.key === "name") {
-    ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
-    msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
-  } else if (qType.key === "architect") {
-    const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
-    ok = anyArchitect;
-    msg = ok
-      ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
-      : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
-  } else if (qType.key === "era") {
-    const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
-    ok = anyEra;
-    msg = ok
-      ? building.eraFeedback
-      : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
+  if (state.awaitingCheck) {
+    evaluateCurrent();
+  } else {
+    nextQuestion();
   }
-
-  markResult(ok, msg);
 }
 
 function toggleMode() {
@@ -383,6 +364,70 @@ function resetStats() {
   state.stats = { score: 0, total: 0, streak: 0 };
   updateScore();
   setFeedback("Punktestand zurückgesetzt.", true);
+}
+
+// Zusätzliche Hilfsfunktion: aktuelle Frage auswerten (MC oder Freitext)
+function evaluateCurrent() {
+  const { building, qType, mode } = state.current;
+
+  if (mode === "mc") {
+    const selectedBtn = UI.mcContainer.querySelector(".answer.selected");
+    if (!selectedBtn) {
+      setFeedback("Bitte eine Antwort auswählen.", false);
+      return;
+    }
+
+    let correctDisplay = "";
+    if (qType.key === "name") correctDisplay = building.name;
+    if (qType.key === "architect") correctDisplay = building._architectDisplay || building.architect || "";
+    if (qType.key === "era") correctDisplay = building._eraDisplay || building.era || "";
+
+    const ok = normalize(selectedBtn.textContent) === normalize(correctDisplay);
+
+    // Styles setzen
+    const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
+    buttons.forEach(b => {
+      const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
+      b.classList.toggle("correct", isCorrect);
+      b.classList.toggle("wrong", !isCorrect && b === selectedBtn);
+    });
+
+    const msg = ok
+      ? "Richtig! ✅"
+      : (qType.key === "era"
+          ? building.eraFeedback
+          : `Falsch. Richtige Antwort: ${correctDisplay}`);
+    markResult(ok, msg);
+  } else {
+    const user = UI.textInput.value;
+    let ok = false;
+    let msg = "";
+
+    if (qType.key === "name") {
+      ok = building._nameAnswers.some(ans => flexibleMatch(user, ans));
+      msg = ok ? "Richtig! ✅" : `Falsch. Richtige Antwort: ${building.name}`;
+    } else if (qType.key === "architect") {
+      const anyArchitect = (building._architectAnswers || []).some(ans => flexibleMatch(user, ans));
+      ok = anyArchitect;
+      msg = ok
+        ? `Richtig! ✅ (${building._architectDisplay || building.architect})`
+        : `Falsch. Richtige Antwort: ${building._architectDisplay || building.architect}`;
+    } else if (qType.key === "era") {
+      const anyEra = (building._eraAnswers || []).some(ans => flexibleMatch(user, ans));
+      ok = anyEra;
+      msg = ok
+        ? building.eraFeedback
+        : `Falsch. Richtige Antwort: ${building._eraDisplay || building.era}`;
+    }
+
+    markResult(ok, msg);
+  }
+}
+
+// Klick-Handler für den einzigen Button: „Überprüfen“ → „Weiter“
+function onNextCheckClick() {
+  if (state.awaitingCheck) evaluateCurrent();
+  else nextQuestion();
 }
 
 // ---------- Init ----------
@@ -405,14 +450,27 @@ async function init() {
 
     // Events
     UI.inputForm.addEventListener("submit", onInputSubmit);
-    UI.nextBtn.addEventListener("click", nextQuestion);
-    UI.revealBtn.addEventListener("click", revealSolution);
-    UI.modeBtn.addEventListener("click", toggleMode);
-    UI.resetBtn.addEventListener("click", resetStats);
+
+    // Ein-Button-Flow: nextBtn übernimmt „Überprüfen/Weiter“
+    UI.nextBtn.addEventListener("click", onNextCheckClick);
+
+    // „Lösung zeigen“ wird versteckt, Listener entfernt
+    if (UI.revealBtn) {
+      UI.revealBtn.classList.add("hidden");
+      // kein addEventListener auf revealBtn mehr
+    }
+
+    // Eingabe-Änderungen aktivieren den Button im Input-Modus
+    UI.textInput.addEventListener("input", () => {
+      // nur relevant, wenn Input-Modus aktiv ist
+      if (state.current && state.current.mode === "input" && state.awaitingCheck) {
+        UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
+      }
+    });
 
     // Persist stats
     const persist = () => localStorage.setItem("archiQuizStats", JSON.stringify(state.stats));
-    ["click", "submit"].forEach(evt =>
+    ["click", "submit", "input"].forEach(evt =>
       document.addEventListener(evt, () => persist(), { capture: true })
     );
 
