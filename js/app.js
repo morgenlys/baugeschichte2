@@ -26,6 +26,34 @@ const QUESTION_TYPES = [
 
 const MODE = { RANDOM: "ZUFALL", MC_ONLY: "MC", INPUT_ONLY: "INPUT" };
 
+// Liste zugelassener Architekten (kleinbuchstaben, normalisiert)
+const ALLOWED_ARCHITECTS = [
+  "donato bramante",
+  "filippo brunelleschi",
+  "andrea palladio",
+  "schinkel",
+  "michelangelo",
+  "borromini",
+  "bernini",
+  "le corbusier",
+  "ludwig mies van der rohe",
+  "michelozzo",
+  "giacomo barozzi da vignola",
+  "giulio romano",
+  "giacomo della porta",
+  "louis le vau",
+  "sinan",
+  "carlo rainaldi",
+  "francois mansart",
+  "peter behrens",
+  "walter gropius",
+  "frei otto",
+  "norman foster",
+  "egon eiermann",
+  "leon battista alberti",
+  "giuliano da sangallo"
+].map(a => a.toLowerCase());
+
 let state = {
   data: [],
   current: null,
@@ -134,7 +162,6 @@ function renderQuestion(){
   setFeedback("");
 
   if(mode==="mc"){
-    // MC: Antworten anzeigen, Eingabe verbergen, Button verbergen
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML="";
@@ -149,11 +176,10 @@ function renderQuestion(){
       btn.type="button";
       btn.className="answer";
       btn.textContent=opt;
-      btn.addEventListener("click", ()=>onMCClick(opt, btn)); // direkt prüfen
+      btn.addEventListener("click", ()=>onMCClick(opt, btn));
       UI.mcContainer.appendChild(btn);
     });
   } else {
-    // Eingabemodus
     UI.mcContainer.classList.add("hidden");
     UI.inputForm.classList.remove("hidden");
     UI.textInput.value="";
@@ -162,7 +188,7 @@ function renderQuestion(){
     if(UI.nextBtn){
       UI.nextBtn.classList.remove("hidden");
       UI.nextBtn.textContent="Überprüfen";
-      UI.nextBtn.disabled=true; // wird bei Eingabe aktiviert
+      UI.nextBtn.disabled=true;
     }
     state.awaitingCheck=true;
   }
@@ -171,7 +197,19 @@ function renderQuestion(){
 // ---------- Game flow ----------
 function nextQuestion(){
   const building=choice(state.data);
-  const qType=choice(QUESTION_TYPES);
+  let qType=choice(QUESTION_TYPES);
+
+  // Filter: Architektenfragen nur bei erlaubten Architekten
+  if(qType.key === "architect"){
+    const archList = (building._architectAnswers || []).map(a => normalize(a));
+    const hasAllowed = archList.some(a =>
+      ALLOWED_ARCHITECTS.some(allowed => a.includes(allowed))
+    );
+    if(!hasAllowed){
+      return nextQuestion(); // nächste Frage wählen
+    }
+  }
+
   const modeDecider=(state.mode===MODE.RANDOM)
     ? (Math.random()<0.5?"mc":"input")
     : (state.mode===MODE.MC_ONLY?"mc":"input");
@@ -185,8 +223,6 @@ function markResult(ok, detailsMsg=""){
   if(ok){ state.stats.score+=1; state.stats.streak+=1; setFeedback(detailsMsg||"Richtig! ✅", true); }
   else { state.stats.streak=0; setFeedback(detailsMsg||"Leider falsch. ❌", false); }
   updateScore();
-
-  // **Immer** „Weiter“-Button anzeigen (MC & Eingabe)
   if(UI.nextBtn){
     UI.nextBtn.textContent="Weiter";
     UI.nextBtn.disabled=false;
@@ -198,7 +234,6 @@ function markResult(ok, detailsMsg=""){
 // ---------- Handlers ----------
 function onMCClick(selected, clickedBtn){
   const {building,qType}=state.current;
-
   const buttons=[...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b=>b.disabled=true);
 
@@ -256,7 +291,7 @@ function resetStats(){
   setFeedback("Punktestand zurückgesetzt.", true);
 }
 
-// ---------- Problem melden (GitHub Issue vorbefüllt) ----------
+// ---------- Problem melden ----------
 function ensureReportButton(){
   if(UI.reportBtn) return;
   const header=document.querySelector(".app-header");
@@ -290,7 +325,6 @@ function openReportIssue(){
 
 Bitte beschreibe das Problem hier:
 `);
-  // >>>> REPO-URL anpassen <<<<
   const repoURL="https://github.com/morgenlys/baugeschichte2/issues/new";
   const url=`${repoURL}?title=${title}&body=${body}`;
   window.open(url, "_blank");
@@ -300,12 +334,10 @@ Bitte beschreibe das Problem hier:
 async function init(){
   try{
     ensureReportButton();
-
     const res=await fetch("./data/buildings.json");
     if(!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
     const rawData=await res.json();
     state.data=rawData.map(enrichBuilding);
-
     state.data.forEach(b=>{ const im=new Image(); im.src=b.image; });
 
     const saved=JSON.parse(localStorage.getItem("archiQuizStats")||"null");
@@ -315,7 +347,6 @@ async function init(){
     UI.inputForm.addEventListener("submit", onInputSubmit);
     if(UI.nextBtn){
       UI.nextBtn.addEventListener("click", ()=>{
-        // Im Eingabemodus: „Überprüfen → Weiter“. In MC ist der Button nur „Weiter“ nach Feedback.
         if(state.current && state.current.mode==="input" && state.awaitingCheck){
           UI.inputForm.requestSubmit();
         } else {
