@@ -30,8 +30,7 @@ let state = {
   current: null,
   stats: { score: 0, total: 0, streak: 0 },
   mode: MODE.RANDOM,
-  // Neuer Flow-Status: true = „Überprüfen“ (auswerten), false = „Weiter“ (nächste Frage)
-  awaitingCheck: true,
+  awaitingCheck: true, // Ein-Button-Flow: true=Überprüfen, false=Weiter
 };
 
 // ---------- Utilities ----------
@@ -44,12 +43,12 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 function stripQualifiers(s) {
   if (!s) return "";
   return s
-    .replace(/\s*[–—-]\s*.*$/, "")  // alles nach Gedankenstrich
-    .replace(/\s*\(.*?\)\s*/g, "")  // Klammerzusätze
+    .replace(/\s*[–—-]\s*.*$/, "")
+    .replace(/\s*\(.*?\)\s*/g, "")
     .trim();
 }
 
-/** Normalize: case-insensitive, strip accents/diacritics, punctuation, collapse spaces, ß→ss, Sankt→St */
+/** Normalize */
 function normalize(str) {
   if (!str) return "";
   return str
@@ -57,14 +56,14 @@ function normalize(str) {
     .trim()
     .toLowerCase()
     .replace(/ß/g, "ss")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove diacritics
-    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")        // punctuation -> space
-    .replace(/\s*&\s*/g, " und ")                     // & ↔ "und"
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[.\-_,;:!?()[\]{}'"`´^~]/g, " ")
+    .replace(/\s*&\s*/g, " und ")
     .replace(/\bsankt\b/g, "st")
-    .replace(/\s+/g, " ");                            // collapse whitespace
+    .replace(/\s+/g, " ");
 }
 
-/** Levenshtein distance (auf normalisierten Strings) */
+/** Levenshtein */
 function levenshtein(a, b) {
   a = normalize(a); b = normalize(b);
   const m = a.length, n = b.length;
@@ -88,13 +87,7 @@ function levenshtein(a, b) {
   return dp[n];
 }
 
-/** Flexible matcher:
- *  - exakte normalisierte Übereinstimmung
- *  - Tippfehler: distance <= ~15% (1..3)
- *  - Start-mit (ab 4 Zeichen)
- *  - Token-Match ("zwinger" ∈ "zwinger dresden")
- *  - Enthält (ab 6 Zeichen)
- */
+/** Flexible matcher */
 function flexibleMatch(input, correct, aliases = []) {
   const normIn = normalize(input);
   if (!normIn) return false;
@@ -137,7 +130,6 @@ function fieldFor(typeKey) {
 
 /** Hilfen */
 function splitList(str = "") {
-  // trennt bei ; , / und deutschen Konjunktionen
   return String(str)
     .split(/[/;,]| und | sowie | & | \+ /gi)
     .map(s => s.trim())
@@ -147,12 +139,12 @@ function uniq(arr) {
   return Array.from(new Set((arr || []).map(v => v).filter(Boolean)));
 }
 
-/** Pretty-Joins für Anzeige */
+/** Pretty-Joins */
 function joinWith(arr, sep = "; ") {
   return (arr || []).filter(Boolean).join(sep);
 }
 
-/** erzeugt pro Gebäude ein „rich“ Objekt mit Answer-Sets */
+/** Rich-Building */
 function enrichBuilding(raw) {
   const b = JSON.parse(JSON.stringify(raw));
 
@@ -171,7 +163,7 @@ function enrichBuilding(raw) {
   ]);
   const architectAliases = uniq([
     ...(b.architectAliases || []),
-    ...architectsFromString, // einzelne Namen auch als Alias
+    ...architectsFromString,
   ]);
   b._architectAnswers = uniq([...architects, ...architectAliases]);
   b._architectDisplay = architects.length ? joinWith(architects) : b.architect || "";
@@ -182,9 +174,7 @@ function enrichBuilding(raw) {
     ...(b.eras || []),
     ...eraTokens
   ]);
-  const eraAliases = uniq([
-    ...(b.eraAliases || [])
-  ]);
+  const eraAliases = uniq([...(b.eraAliases || [])]);
   b._eraAnswers = uniq([...eras, ...eraAliases]);
   b._eraDisplay = eras.length ? joinWith(eras, " / ") : (b.era || "");
 
@@ -197,19 +187,18 @@ function enrichBuilding(raw) {
   return b;
 }
 
-/** Erzeugt einen Satz wie gewünscht */
+/** Feedback-Satz */
 function eraFeedbackSentence(name, erasList) {
   const e = (erasList || []).filter(Boolean);
   if (e.length === 0) return `Bei dem Gebäude handelt es sich um ${name}.`;
   if (e.length === 1) return `Bei dem Gebäude handelt es sich um ${name} aus der ${e[0]}.`;
   if (e.length === 2) return `Bei dem Gebäude handelt es sich um ${name} aus sowohl der ${e[0]} als auch der ${e[1]}.`;
-  // 3+ -> aufzählen
   const last = e[e.length - 1];
   const rest = e.slice(0, -1).join(", ");
   return `Bei dem Gebäude handelt es sich um ${name} aus ${rest} und ${last}.`;
 }
 
-/** Antwortmöglichkeiten (MC) bauen – Anzeige-Strings */
+/** MC-Optionen */
 function buildOptions(data, building, qType, count = 4) {
   const opts = [];
   if (qType.key === "name") {
@@ -258,7 +247,7 @@ function renderQuestion() {
 
   setFeedback("");
 
-  // Ein-Button-Flow: Button auf „Überprüfen“ stellen und (für MC) bis Auswahl disable
+  // Ein-Button: „Überprüfen“ (bis Auswertung), dann „Weiter“
   UI.nextBtn.textContent = "Überprüfen";
   state.awaitingCheck = true;
 
@@ -266,7 +255,7 @@ function renderQuestion() {
     UI.inputForm.classList.add("hidden");
     UI.mcContainer.classList.remove("hidden");
     UI.mcContainer.innerHTML = "";
-    UI.nextBtn.disabled = true; // erst aktiv nach Auswahl
+    UI.nextBtn.disabled = true; // erst nach Auswahl
     options.forEach(opt => {
       const btn = document.createElement("button");
       btn.type = "button";
@@ -280,13 +269,12 @@ function renderQuestion() {
     UI.inputForm.classList.remove("hidden");
     UI.textInput.value = "";
     UI.textInput.focus();
-    // Für Freitext: aktivieren, sobald etwas drinsteht
-    UI.nextBtn.disabled = true;
+    UI.nextBtn.disabled = true; // aktiv, sobald Text vorhanden
   }
 }
 
 function revealSolution() {
-  // Funktion bleibt erhalten, wird aber durch UI ausgeblendet / nicht getriggert.
+  // bleibt erhalten (UI wird ggf. versteckt)
   const { building, qType } = state.current;
   if (qType.key === "architect") {
     const s = building._architectDisplay || building.architect || "";
@@ -322,7 +310,6 @@ function markResult(ok, detailsMsg = "") {
   }
   updateScore();
 
-  // Ein-Button-Flow: Jetzt „Weiter“
   UI.nextBtn.disabled = false;
   UI.nextBtn.textContent = "Weiter";
   state.awaitingCheck = false;
@@ -330,20 +317,15 @@ function markResult(ok, detailsMsg = "") {
 
 // ---------- Handlers ----------
 function onMCClick(selected) {
-  // NEU: Nur Auswahl markieren; Auswertung erst beim Klick auf „Überprüfen“
+  // Nur Auswahl markieren; Auswertung erst bei „Überprüfen“
   const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
   buttons.forEach(b => b.classList.remove("selected", "correct", "wrong"));
-
-  // markiere Auswahl
   const clicked = buttons.find(b => b.textContent === selected);
   if (clicked) clicked.classList.add("selected");
-
-  // „Überprüfen“ aktivieren
   UI.nextBtn.disabled = false;
 }
 
 function onInputSubmit(e) {
-  // Enter im Textfeld soll dem Klick auf „Überprüfen“ entsprechen
   e.preventDefault();
   if (state.awaitingCheck) {
     evaluateCurrent();
@@ -366,7 +348,7 @@ function resetStats() {
   setFeedback("Punktestand zurückgesetzt.", true);
 }
 
-// Zusätzliche Hilfsfunktion: aktuelle Frage auswerten (MC oder Freitext)
+// Auswertung (für MC & Input)
 function evaluateCurrent() {
   const { building, qType, mode } = state.current;
 
@@ -384,7 +366,6 @@ function evaluateCurrent() {
 
     const ok = normalize(selectedBtn.textContent) === normalize(correctDisplay);
 
-    // Styles setzen
     const buttons = [...UI.mcContainer.querySelectorAll(".answer")];
     buttons.forEach(b => {
       const isCorrect = normalize(b.textContent) === normalize(correctDisplay);
@@ -424,7 +405,7 @@ function evaluateCurrent() {
   }
 }
 
-// Klick-Handler für den einzigen Button: „Überprüfen“ → „Weiter“
+// Klick-Handler für „Überprüfen/Weiter“
 function onNextCheckClick() {
   if (state.awaitingCheck) evaluateCurrent();
   else nextQuestion();
@@ -433,13 +414,42 @@ function onNextCheckClick() {
 // ---------- Init ----------
 async function init() {
   try {
-    const res = await fetch("./data/buildings.json");
-    let rawData = await res.json();
+    // Robuster Loader: probiert mehrere Pfade
+    const candidates = [
+      "./data/buildings.json",
+      "./baugeschichte2/data/buildings.json",
+      "/data/buildings.json"
+    ];
 
-    // Auto-Enrichment (Aliasse, Mehrfach-Antworten, Feedback)
-    state.data = rawData.map(enrichBuilding);
+    let res, lastErr;
+    for (const url of candidates) {
+      try {
+        res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) {
+          console.warn(`buildings.json nicht OK (${res.status}) bei`, url);
+          continue;
+        }
+        // Sicherstellen, dass wirklich JSON kommt
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.includes("application/json")) {
+          console.warn(`Unerwarteter Content-Type (${ct}) bei`, url);
+        }
+        var rawData = await res.json();
+        console.info("buildings.json geladen von:", url);
+        // Daten verarbeiten
+        state.data = rawData.map(enrichBuilding);
+        break;
+      } catch (e) {
+        lastErr = e;
+        console.warn("Fehler beim Laden von", url, e);
+      }
+    }
 
-    // Preload images (best effort)
+    if (!state.data.length) {
+      throw lastErr || new Error("Keine Daten geladen (alle Pfade fehlgeschlagen).");
+    }
+
+    // Preload images
     state.data.forEach(b => { const im = new Image(); im.src = b.image; });
 
     // Restore score
@@ -450,19 +460,13 @@ async function init() {
 
     // Events
     UI.inputForm.addEventListener("submit", onInputSubmit);
-
-    // Ein-Button-Flow: nextBtn übernimmt „Überprüfen/Weiter“
     UI.nextBtn.addEventListener("click", onNextCheckClick);
+    if (UI.revealBtn) UI.revealBtn.classList.add("hidden");
+    UI.modeBtn.addEventListener("click", toggleMode);
+    UI.resetBtn.addEventListener("click", resetStats);
 
-    // „Lösung zeigen“ wird versteckt, Listener entfernt
-    if (UI.revealBtn) {
-      UI.revealBtn.classList.add("hidden");
-      // kein addEventListener auf revealBtn mehr
-    }
-
-    // Eingabe-Änderungen aktivieren den Button im Input-Modus
+    // Aktivier-Logik für Input
     UI.textInput.addEventListener("input", () => {
-      // nur relevant, wenn Input-Modus aktiv ist
       if (state.current && state.current.mode === "input" && state.awaitingCheck) {
         UI.nextBtn.disabled = UI.textInput.value.trim().length === 0;
       }
