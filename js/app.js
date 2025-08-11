@@ -293,7 +293,7 @@ function openReportIssue(){
 Bitte beschreibe das Problem hier:
 `);
   // >>>> REPO-URL anpassen <<<<
-  const repoURL="https://github.com/<DEIN_USER>/<DEIN_REPO>/issues/new";
+  const repoURL="https://github.com/morgenlys/baugeschichte2/issues/new";
   const url=`${repoURL}?title=${title}&body=${body}`;
   window.open(url, "_blank");
 }
